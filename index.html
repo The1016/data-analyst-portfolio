@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The | Junior Data Analyst Portfolio</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #111827;
+      --panel-2: #1f2937;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --accent: #38bdf8;
+      --accent-2: #22c55e;
+      --border: #334155;
+      --white: #ffffff;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: linear-gradient(180deg, var(--bg), #020617);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    a:hover { text-decoration: underline; }
+
+    .container {
+      width: min(1120px, 92%);
+      margin: auto;
+    }
+
+    header {
+      padding: 28px 0;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      background: rgba(15, 23, 42, 0.92);
+      backdrop-filter: blur(10px);
+      z-index: 10;
+    }
+
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    .logo {
+      font-weight: 700;
+      color: var(--white);
+      letter-spacing: 0.2px;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 18px;
+      font-size: 14px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .hero {
+      padding: 80px 0 56px;
+      display: grid;
+      grid-template-columns: 1.3fr 0.7fr;
+      gap: 34px;
+      align-items: center;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 6px 12px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      color: var(--accent);
+      background: rgba(56, 189, 248, 0.08);
+      font-size: 14px;
+      margin-bottom: 18px;
+    }
+
+    h1 {
+      font-size: clamp(36px, 6vw, 64px);
+      line-height: 1.05;
+      margin: 0 0 18px;
+      color: var(--white);
+    }
+
+    .hero p {
+      font-size: 18px;
+      color: var(--muted);
+      max-width: 720px;
+      margin-bottom: 28px;
+    }
+
+    .hero-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      padding: 24px;
+      box-shadow: 0 20px 70px rgba(0, 0, 0, 0.25);
+    }
+
+    .hero-card h3 { margin-top: 0; color: var(--white); }
+
+    .stat {
+      display: flex;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      padding: 12px 0;
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    .stat strong { color: var(--white); }
+
+    .btn-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-block;
+      padding: 12px 18px;
+      border-radius: 10px;
+      font-weight: 700;
+      border: 1px solid var(--border);
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #082f49;
+      border-color: var(--accent);
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--text);
+    }
+
+    .btn:hover {
+      text-decoration: none;
+      transform: translateY(-1px);
+      transition: 0.2s ease;
+    }
+
+    .contact-buttons {
+      justify-content: center;
+      margin-top: 22px;
+    }
+
+    .contact-buttons .btn {
+      min-width: 140px;
+      text-align: center;
+    }
+
+    .project-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 16px;
+    }
+
+    .project-actions .btn {
+      font-size: 14px;
+      padding: 10px 14px;
+    }
+
+    .repo-button-row {
+      margin-top: 16px;
+    }
+
+    section { padding: 54px 0; }
+
+    .section-title {
+      font-size: 32px;
+      color: var(--white);
+      margin: 0 0 12px;
+    }
+
+    .section-subtitle {
+      color: var(--muted);
+      margin: 0 0 28px;
+      max-width: 800px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 18px;
+    }
+
+    .card, .case-study {
+      background: rgba(17, 24, 39, 0.9);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 22px;
+    }
+
+    .case-study { margin-bottom: 18px; }
+
+    .card h3, .case-study h3 {
+      color: var(--white);
+      margin-top: 0;
+      margin-bottom: 10px;
+    }
+
+    .card p, .case-study p { color: var(--muted); }
+
+    .tag-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin: 14px 0;
+    }
+
+    .tag {
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.04);
+      padding: 5px 9px;
+      border-radius: 999px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .project-card {
+      min-height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .project-meta {
+      color: var(--accent-2);
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    ul {
+      color: var(--muted);
+      padding-left: 20px;
+    }
+
+    .note {
+      border-left: 4px solid var(--accent);
+      padding: 12px 14px;
+      background: rgba(56, 189, 248, 0.08);
+      color: var(--muted);
+      border-radius: 10px;
+      margin-top: 20px;
+    }
+
+    .contact-box {
+      background: linear-gradient(135deg, rgba(56,189,248,0.16), rgba(34,197,94,0.12));
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      padding: 32px;
+      text-align: center;
+    }
+
+    .contact-box p {
+      color: var(--muted);
+      max-width: 700px;
+      margin: 0 auto 22px;
+    }
+
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 30px 0;
+      color: var(--muted);
+      font-size: 14px;
+      text-align: center;
+    }
+
+    @media (max-width: 850px) {
+      .hero, .grid-2, .grid-3 {
+        grid-template-columns: 1fr;
+      }
+
+      nav {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .nav-links {
+        justify-content: flex-start;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container">
+      <nav>
+        <div class="logo">The | Data Analyst</div>
+        <div class="nav-links">
+          <a href="#services">Services</a>
+          <a href="#projects">Projects</a>
+          <a href="#skills">Skills</a>
+          <a href="#contact">Contact</a>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero container">
+      <div>
+        <span class="badge">Junior Data Analyst | Power BI | SQL | Python | Excel</span>
+        <h1>I turn messy business data into clear dashboards and insights.</h1>
+        <p>
+          I help small businesses and teams clean Excel/CSV data, build Power BI dashboards,
+          analyze sales, profit, customers, products, and operations, and create simple reporting systems.
+        </p>
+        <div class="btn-row">
+          <a class="btn btn-primary" href="#projects">View Projects</a>
+          <a class="btn btn-secondary" href="#contact">Contact Me</a>
+        </div>
+      </div>
+      <aside class="hero-card">
+        <h3>Portfolio Snapshot</h3>
+        <div class="stat"><span>Completed Projects</span><strong>4</strong></div>
+        <div class="stat"><span>Main Focus</span><strong>Business BI</strong></div>
+        <div class="stat"><span>Dashboards</span><strong>Power BI</strong></div>
+        <div class="stat"><span>Data Work</span><strong>Python, SQL, Excel</strong></div>
+        <div class="stat"><span>Available For</span><strong>Small Projects</strong></div>
+      </aside>
+    </section>
+
+    <section id="services">
+      <div class="container">
+        <h2 class="section-title">Services I Can Help With</h2>
+        <p class="section-subtitle">
+          Simple, business-focused data services for people who use Excel, CSV files, and basic business records.
+        </p>
+        <div class="grid-3">
+          <div class="card">
+            <h3>Excel/CSV Data Cleaning</h3>
+            <p>Clean messy files, remove duplicates, fix dates, standardize categories, prepare analysis-ready data, and create clean output files.</p>
+          </div>
+          <div class="card">
+            <h3>Power BI Dashboards</h3>
+            <p>Build dashboards for revenue, profit, orders, customers, products, regions, monthly trends, and business KPIs.</p>
+          </div>
+          <div class="card">
+            <h3>Monthly Reporting Systems</h3>
+            <p>Create repeatable reporting workflows where new monthly files can be added, cleaned, and refreshed into a dashboard.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="projects">
+      <div class="container">
+        <h2 class="section-title">Featured Projects</h2>
+        <p class="section-subtitle">
+          These projects show my ability to clean data, calculate business KPIs, use SQL/Python, build Power BI dashboards, and explain insights clearly.
+        </p>
+        <div class="grid-2">
+          <article class="card project-card">
+            <div>
+              <div class="project-meta">Python + Power BI + Automation</div>
+              <h3>Automated Sales Reporting System</h3>
+              <p>
+                Built a refreshable reporting workflow where monthly sales CSV files are combined, cleaned with Python, exported as clean data, and connected to a Power BI dashboard.
+              </p>
+              <ul>
+                <li>Automated monthly CSV loading and cleaning</li>
+                <li>Created sales, profit, customer, region, and product KPIs</li>
+                <li>Built a four-page Power BI dashboard with refresh workflow</li>
+              </ul>
+            </div>
+            <div class="tag-row">
+              <span class="tag">Python</span><span class="tag">Pandas</span><span class="tag">Power BI</span><span class="tag">DAX</span><span class="tag">CSV</span>
+            </div>
+            <div class="project-actions">
+              <a class="btn btn-primary" href="https://github.com/The1016/Automated-sales-reporting-system" target="_blank" rel="noopener noreferrer">View on GitHub</a>
+              <a class="btn btn-secondary" href="#automated-sales-reporting">Case Study</a>
+            </div>
+          </article>
+
+          <article class="card project-card">
+            <div>
+              <div class="project-meta">Python + SQL + Power BI</div>
+              <h3>E-commerce Revenue, Delivery & Customer Satisfaction Analysis</h3>
+              <p>
+                Analyzed a multi-table e-commerce dataset to understand revenue, product categories, customer regions, delivery performance, payment behavior, and review outcomes.
+              </p>
+              <ul>
+                <li>Worked with orders, products, customers, payments, reviews, sellers, and geolocation data</li>
+                <li>Measured late delivery rate, review score, revenue, and state-level operations</li>
+                <li>Used SQL analysis and Power BI dashboard pages</li>
+              </ul>
+            </div>
+            <div class="tag-row">
+              <span class="tag">SQL</span><span class="tag">Python</span><span class="tag">Power BI</span><span class="tag">Business Analysis</span>
+            </div>
+            <div class="project-actions">
+              <a class="btn btn-primary" href="https://github.com/The1016/E-commerce-sales-analysis-project" target="_blank" rel="noopener noreferrer">View on GitHub</a>
+              <a class="btn btn-secondary" href="#ecommerce-analysis">Case Study</a>
+            </div>
+          </article>
+
+          <article class="card project-card">
+            <div>
+              <div class="project-meta">Profitability + BI Dashboard</div>
+              <h3>End-to-End Retail Profitability Analytics System</h3>
+              <p>
+                Built a retail profitability analytics system to identify sales drivers, profit problems, discount impact, customer value, regional performance, and shipping efficiency.
+              </p>
+              <ul>
+                <li>Created profit margin, shipping duration, and profitability status fields</li>
+                <li>Performed Python EDA and SQLite/SQL business analysis</li>
+                <li>Built a four-page Power BI dashboard with recommendations</li>
+              </ul>
+            </div>
+            <div class="tag-row">
+              <span class="tag">Python</span><span class="tag">SQLite</span><span class="tag">SQL</span><span class="tag">Power BI</span><span class="tag">Profit Analysis</span>
+            </div>
+            <div class="project-actions">
+              <a class="btn btn-primary" href="https://github.com/The1016/End-to-End-Retail-Profitability-Analytics-System" target="_blank" rel="noopener noreferrer">View on GitHub</a>
+              <a class="btn btn-secondary" href="#retail-profitability">Case Study</a>
+            </div>
+          </article>
+
+          <article class="card project-card">
+            <div>
+              <div class="project-meta">Customer Analytics + Risk Scoring</div>
+              <h3>Customer Churn and Retention Analysis</h3>
+              <p>
+                Analyzed telecom customer churn patterns, identified high-risk customer segments, and created a churn risk score to support targeted retention decisions.
+              </p>
+              <ul>
+                <li>Analyzed 7,032 customers</li>
+                <li>Identified churn drivers such as contract type, tenure, payment method, and monthly charges</li>
+                <li>Created a five-factor customer risk score</li>
+              </ul>
+            </div>
+            <div class="tag-row">
+              <span class="tag">Python</span><span class="tag">Pandas</span><span class="tag">Power BI</span><span class="tag">Churn Analysis</span><span class="tag">Risk Score</span>
+            </div>
+            <div class="project-actions">
+              <a class="btn btn-primary" href="https://github.com/The1016/Customer-Churn-and-Retention-Analysis" target="_blank" rel="noopener noreferrer">View on GitHub</a>
+              <a class="btn btn-secondary" href="#customer-churn">Case Study</a>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="case-studies">
+      <div class="container">
+        <h2 class="section-title">Project Case Studies</h2>
+        <p class="section-subtitle">
+          The project cards now include direct GitHub buttons, and these case-study sections include repository buttons as well.
+        </p>
+
+        <article class="case-study" id="automated-sales-reporting">
+          <div class="project-meta">Case Study 1</div>
+          <h3>Automated Sales Reporting System</h3>
+          <p><strong>Problem:</strong> A business receives monthly sales CSV files and needs a repeatable reporting workflow instead of manually cleaning and combining files every month.</p>
+          <p><strong>Solution:</strong> Created a Python pipeline that loads monthly files, combines them, cleans the dataset, removes duplicates, standardizes dates/text fields, creates business columns, exports clean data, and connects the output to Power BI.</p>
+          <p><strong>Result:</strong> A refreshable Power BI report covering executive sales, product/margin analysis, customer/region analysis, and data quality/refresh summary.</p>
+          <p><strong>Tools:</strong> Python, Pandas, Power BI, DAX, Power Query, CSV.</p>
+          <div class="repo-button-row">
+            <a class="btn btn-primary" href="https://github.com/The1016/Automated-sales-reporting-system" target="_blank" rel="noopener noreferrer">Open GitHub Repository</a>
+          </div>
+          <p><a href="#projects">Back to Projects ↑</a></p>
+        </article>
+
+        <article class="case-study" id="ecommerce-analysis">
+          <div class="project-meta">Case Study 2</div>
+          <h3>E-commerce Revenue, Delivery & Customer Satisfaction Analysis</h3>
+          <p><strong>Problem:</strong> An e-commerce business needs to understand sales performance, product categories, delivery reliability, customer reviews, payments, and state-level operations.</p>
+          <p><strong>Solution:</strong> Cleaned and analyzed multiple related tables, built KPI queries with SQL, created business charts, and built Power BI dashboard pages for executive overview, category/regional performance, and delivery/customer experience.</p>
+          <p><strong>Result:</strong> Identified revenue concentration, late delivery problems, weak review areas, and operational priority states for improvement.</p>
+          <p><strong>Tools:</strong> Python, Pandas, SQL, Matplotlib, Power BI.</p>
+          <div class="repo-button-row">
+            <a class="btn btn-primary" href="https://github.com/The1016/E-commerce-sales-analysis-project" target="_blank" rel="noopener noreferrer">Open GitHub Repository</a>
+          </div>
+          <p><a href="#projects">Back to Projects ↑</a></p>
+        </article>
+
+        <article class="case-study" id="retail-profitability">
+          <div class="project-meta">Case Study 3</div>
+          <h3>End-to-End Retail Profitability Analytics System</h3>
+          <p><strong>Problem:</strong> A retail business needs to understand what drives revenue, what reduces profit, which products/customers create losses, and which actions can improve profitability.</p>
+          <p><strong>Solution:</strong> Cleaned and engineered the dataset with Python, created a SQLite database, performed SQL business analysis, built a Power BI dashboard, and wrote recommendation-focused findings.</p>
+          <p><strong>Result:</strong> A full profitability analytics system covering executive overview, product profitability, customer/segment analysis, and region/discount/shipping analysis.</p>
+          <p><strong>Tools:</strong> Python, Pandas, NumPy, SQLite, SQL, Power BI.</p>
+          <div class="repo-button-row">
+            <a class="btn btn-primary" href="https://github.com/The1016/End-to-End-Retail-Profitability-Analytics-System" target="_blank" rel="noopener noreferrer">Open GitHub Repository</a>
+          </div>
+          <p><a href="#projects">Back to Projects ↑</a></p>
+        </article>
+
+        <article class="case-study" id="customer-churn">
+          <div class="project-meta">Case Study 4</div>
+          <h3>Customer Churn and Retention Analysis</h3>
+          <p><strong>Problem:</strong> A telecom company needs to understand why customers leave and which groups should be prioritized for retention campaigns.</p>
+          <p><strong>Solution:</strong> Cleaned customer data, analyzed churn by contract, tenure, monthly charges, payment method, and internet service, then created a five-factor customer risk score.</p>
+          <p><strong>Result:</strong> Clear churn drivers, risk segments, and retention recommendations for high-risk customer groups.</p>
+          <p><strong>Tools:</strong> Python, Pandas, NumPy, Matplotlib, Power BI.</p>
+          <div class="repo-button-row">
+            <a class="btn btn-primary" href="https://github.com/The1016/Customer-Churn-and-Retention-Analysis" target="_blank" rel="noopener noreferrer">Open GitHub Repository</a>
+          </div>
+          <p><a href="#projects">Back to Projects ↑</a></p>
+        </article>
+      </div>
+    </section>
+
+    <section id="skills">
+      <div class="container">
+        <h2 class="section-title">Skills</h2>
+        <p class="section-subtitle">Tools and business areas I have used across my portfolio projects.</p>
+        <div class="grid-3">
+          <div class="card">
+            <h3>Data Tools</h3>
+            <p>Python, Pandas, NumPy, SQL, SQLite, Excel, CSV, Jupyter Notebook</p>
+          </div>
+          <div class="card">
+            <h3>Dashboarding</h3>
+            <p>Power BI, DAX measures, Power Query, slicers, KPI cards, multi-page dashboard design</p>
+          </div>
+          <div class="card">
+            <h3>Business Analysis</h3>
+            <p>Sales analysis, profit analysis, customer analysis, churn analysis, product performance, delivery performance, data quality reporting</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="process">
+      <div class="container">
+        <h2 class="section-title">How I Work</h2>
+        <div class="grid-3">
+          <div class="card">
+            <h3>1. Understand the Data</h3>
+            <p>I review the file structure, columns, business goal, and reporting needs.</p>
+          </div>
+          <div class="card">
+            <h3>2. Clean and Prepare</h3>
+            <p>I clean dates, categories, duplicates, missing values, and create useful calculated fields.</p>
+          </div>
+          <div class="card">
+            <h3>3. Build Insights</h3>
+            <p>I create KPIs, dashboards, charts, and clear recommendations that answer business questions.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="contact">
+      <div class="container">
+        <div class="contact-box">
+          <h2 class="section-title">Need a Dashboard or Clean Report?</h2>
+          <p>
+            I am open to beginner-friendly data cleaning, dashboard, and reporting projects.
+            Send me your Excel/CSV file and I can help turn it into a cleaner report or dashboard.
+          </p>
+          <div class="btn-row contact-buttons">
+            <a class="btn btn-primary" href="mailto:werewereside@gmail.com">Email Me</a>
+            <a class="btn btn-secondary" href="https://github.com/The1016" target="_blank" rel="noopener noreferrer">GitHub</a>
+            <a class="btn btn-secondary" href="https://www.linkedin.com/in/the202123" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container">
+      © 2026 The. Junior Data Analyst Portfolio.
+    </div>
+  </footer>
+</body>
+</html>
