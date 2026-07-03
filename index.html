@@ -15,6 +15,16 @@
   <meta name="twitter:description" content="SQL, Python, Excel, Power BI, dashboards, and business analytics projects.">
   <meta name="twitter:image" content="https://data-analyst-portfolio-yirid-three.vercel.app/preview.png">
   <title>The | Junior Data Analyst Portfolio</title>
+
+  <script>
+    // Always start the portfolio at Home/top on a fresh page load or refresh.
+    if ('scrollRestoration' in history) {
+      history.scrollRestoration = 'manual';
+    }
+    if (window.location.hash) {
+      history.replaceState(null, document.title, window.location.pathname + window.location.search);
+    }
+  </script>
   <style>
     :root {
       --bg: #0f172a;
@@ -317,6 +327,832 @@
         justify-content: flex-start;
       }
     }
+  
+
+    /* =========================
+       WORKING VISIBLE ANIMATIONS v3
+       This version uses direct JS + CSS class toggles, no external libraries.
+       ========================= */
+
+    body {
+      overflow-x: hidden;
+    }
+
+    body::before,
+    body::after {
+      content: "";
+      position: fixed;
+      width: 420px;
+      height: 420px;
+      border-radius: 999px;
+      pointer-events: none;
+      z-index: -1;
+      filter: blur(12px);
+      opacity: 0.34;
+      animation: backgroundDrift 14s ease-in-out infinite alternate;
+    }
+
+    body::before {
+      top: 12%;
+      left: -140px;
+      background: radial-gradient(circle, rgba(56, 189, 248, 0.26), transparent 68%);
+    }
+
+    body::after {
+      right: -160px;
+      bottom: 12%;
+      background: radial-gradient(circle, rgba(34, 197, 94, 0.18), transparent 68%);
+      animation-delay: -5s;
+    }
+
+    .nav-links a {
+      position: relative;
+      padding: 6px 3px;
+      color: var(--muted);
+      transition: color 0.22s ease, transform 0.22s ease;
+    }
+
+    .nav-links a::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      bottom: -7px;
+      width: 0;
+      height: 2px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      transition: width 0.25s ease;
+    }
+
+    .nav-links a:hover,
+    .nav-links a.is-active {
+      color: var(--white);
+      text-decoration: none;
+      transform: translateY(-1px);
+    }
+
+    .nav-links a:hover::after,
+    .nav-links a.is-active::after {
+      width: 100%;
+    }
+
+    /* Very visible section-switch overlay */
+    .section-switch-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 999999;
+      pointer-events: none;
+      opacity: 0;
+      background:
+        radial-gradient(circle at 18% 30%, rgba(56, 189, 248, 0.36), transparent 28%),
+        radial-gradient(circle at 80% 70%, rgba(34, 197, 94, 0.30), transparent 28%),
+        rgba(2, 6, 23, 0.58);
+    }
+
+    .section-switch-overlay::before,
+    .section-switch-overlay::after {
+      content: "";
+      position: absolute;
+      top: -15%;
+      width: 28%;
+      height: 130%;
+      background: linear-gradient(90deg, transparent, rgba(56, 189, 248, 0.58), rgba(34, 197, 94, 0.35), transparent);
+      transform: skewX(-18deg) translateX(-160%);
+      box-shadow: 0 0 90px rgba(56, 189, 248, 0.35);
+    }
+
+    .section-switch-overlay::after {
+      width: 18%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.18), rgba(56, 189, 248, 0.26), transparent);
+      animation-delay: 0.08s;
+    }
+
+    body.section-changing .section-switch-overlay {
+      animation: overlayFlash 0.92s ease both;
+    }
+
+    body.section-changing .section-switch-overlay::before {
+      animation: beamSweep 0.92s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    body.section-changing .section-switch-overlay::after {
+      animation: beamSweep 0.92s cubic-bezier(0.16, 1, 0.3, 1) 0.09s both;
+    }
+
+    /* A visible click ripple on navbar/internal links */
+    .click-burst {
+      position: fixed;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      pointer-events: none;
+      z-index: 1000000;
+      background: rgba(56, 189, 248, 0.75);
+      box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.36), 0 0 38px rgba(56, 189, 248, 0.45);
+      transform: translate(-50%, -50%) scale(0.35);
+      animation: clickBurst 0.72s ease-out forwards;
+    }
+
+    section[id], .case-study[id] {
+      scroll-margin-top: 118px;
+      position: relative;
+    }
+
+    /* Scroll reveal system */
+    .reveal-prep {
+      opacity: 0;
+      transform: translateY(44px) scale(0.985);
+      filter: blur(5px);
+      transition:
+        opacity 0.7s ease,
+        transform 0.85s cubic-bezier(0.16, 1, 0.3, 1),
+        filter 0.75s ease;
+      transition-delay: var(--reveal-delay, 0ms);
+      will-change: opacity, transform, filter;
+    }
+
+    .reveal-prep.revealed {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      filter: blur(0);
+    }
+
+    .hero .badge,
+    .hero h1,
+    .hero p,
+    .hero .btn-row {
+      opacity: 0;
+      transform: translateY(28px);
+      animation: heroItemIn 0.72s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .hero h1 { animation-delay: 0.12s; }
+    .hero p { animation-delay: 0.24s; }
+    .hero .btn-row { animation-delay: 0.36s; }
+
+    .hero-card {
+      animation: heroCardPop 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.22s both, cardFloat 5s ease-in-out 1.15s infinite;
+    }
+
+    .hero-card .stat {
+      opacity: 0;
+      transform: translateX(18px);
+      animation: statSlide 0.48s ease forwards;
+    }
+
+    .hero-card .stat:nth-child(2) { animation-delay: 0.38s; }
+    .hero-card .stat:nth-child(3) { animation-delay: 0.46s; }
+    .hero-card .stat:nth-child(4) { animation-delay: 0.54s; }
+    .hero-card .stat:nth-child(5) { animation-delay: 0.62s; }
+    .hero-card .stat:nth-child(6) { animation-delay: 0.70s; }
+
+    .card,
+    .case-study,
+    .contact-box,
+    .hero-card {
+      transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
+    }
+
+    .card:hover,
+    .case-study:hover,
+    .contact-box:hover {
+      transform: translateY(-8px);
+      border-color: rgba(56, 189, 248, 0.58);
+      box-shadow: 0 22px 62px rgba(2, 6, 23, 0.48), 0 0 0 1px rgba(56, 189, 248, 0.12) inset;
+    }
+
+    .project-card {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .project-card::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0;
+      height: 4px;
+      width: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.35s ease;
+    }
+
+    .project-card:hover::before,
+    .section-arrived .project-card::before,
+    .project-card.section-arrived::before {
+      transform: scaleX(1);
+    }
+
+    .btn {
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+    }
+
+    .btn::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: -125%;
+      width: 80%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.28), transparent);
+      transform: skewX(-18deg);
+      transition: left 0.52s ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 13px 34px rgba(56, 189, 248, 0.17);
+      text-decoration: none;
+    }
+
+    .btn:hover::after {
+      left: 138%;
+    }
+
+    .section-arrived {
+      animation: sectionLanding 1.05s cubic-bezier(0.16, 1, 0.3, 1) both;
+      z-index: 1;
+    }
+
+    .section-arrived::after {
+      content: "";
+      position: absolute;
+      inset: -18px;
+      border-radius: 32px;
+      pointer-events: none;
+      z-index: -1;
+      background:
+        radial-gradient(circle at 20% 0%, rgba(56, 189, 248, 0.26), transparent 35%),
+        radial-gradient(circle at 88% 14%, rgba(34, 197, 94, 0.20), transparent 36%);
+      animation: sectionGlow 1.15s ease both;
+    }
+
+    @keyframes overlayFlash {
+      0% { opacity: 0; backdrop-filter: blur(0); }
+      18% { opacity: 1; backdrop-filter: blur(3px); }
+      72% { opacity: 1; backdrop-filter: blur(2px); }
+      100% { opacity: 0; backdrop-filter: blur(0); }
+    }
+
+    @keyframes beamSweep {
+      0% { transform: skewX(-18deg) translateX(-180%); opacity: 0; }
+      12% { opacity: 1; }
+      100% { transform: skewX(-18deg) translateX(560%); opacity: 0; }
+    }
+
+    @keyframes clickBurst {
+      0% { opacity: 0.9; transform: translate(-50%, -50%) scale(0.35); box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.5); }
+      100% { opacity: 0; transform: translate(-50%, -50%) scale(4.8); box-shadow: 0 0 0 22px rgba(56, 189, 248, 0); }
+    }
+
+    @keyframes heroItemIn {
+      from { opacity: 0; transform: translateY(28px); filter: blur(4px); }
+      to { opacity: 1; transform: translateY(0); filter: blur(0); }
+    }
+
+    @keyframes heroCardPop {
+      from { opacity: 0; transform: translateY(34px) scale(0.96); filter: blur(6px); }
+      to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+    }
+
+    @keyframes statSlide {
+      from { opacity: 0; transform: translateX(18px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    @keyframes cardFloat {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+
+    @keyframes sectionLanding {
+      0% { opacity: 0.55; transform: translateY(42px) scale(0.975); filter: blur(3px); }
+      62% { opacity: 1; filter: blur(0); }
+      100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+    }
+
+    @keyframes sectionGlow {
+      0% { opacity: 0; transform: scale(0.96); }
+      35% { opacity: 1; }
+      100% { opacity: 0; transform: scale(1.04); }
+    }
+
+    @keyframes backgroundDrift {
+      from { transform: translate3d(0, 0, 0) scale(1); }
+      to { transform: translate3d(40px, -35px, 0) scale(1.08); }
+    }
+
+
+
+    /* =========================
+       SMOOTHER BUT STILL VISIBLE ANIMATIONS v4
+       Built on top of the last version that visibly worked.
+       The goal: keep the same effects, but make them less choppy.
+       ========================= */
+
+    :root {
+      --ease-smooth: cubic-bezier(0.22, 1, 0.36, 1);
+      --ease-soft: cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    body::before,
+    body::after {
+      animation-duration: 22s;
+      will-change: transform;
+      transform: translate3d(0, 0, 0);
+    }
+
+    .nav-links a {
+      transition: color 0.34s var(--ease-smooth), transform 0.34s var(--ease-smooth);
+    }
+
+    .nav-links a::after {
+      transition: width 0.42s var(--ease-smooth);
+    }
+
+    .section-switch-overlay {
+      background:
+        radial-gradient(circle at 18% 30%, rgba(56, 189, 248, 0.34), transparent 30%),
+        radial-gradient(circle at 80% 70%, rgba(34, 197, 94, 0.28), transparent 30%),
+        rgba(2, 6, 23, 0.50);
+      will-change: opacity;
+      transform: translate3d(0, 0, 0);
+    }
+
+    .section-switch-overlay::before,
+    .section-switch-overlay::after {
+      width: 30%;
+      height: 135%;
+      transform: skewX(-18deg) translate3d(-190%, 0, 0);
+      will-change: transform, opacity;
+      box-shadow: 0 0 70px rgba(56, 189, 248, 0.30);
+    }
+
+    body.section-changing .section-switch-overlay {
+      animation: overlayFlash 1.12s var(--ease-smooth) both;
+    }
+
+    body.section-changing .section-switch-overlay::before {
+      animation: beamSweep 1.12s var(--ease-smooth) both;
+    }
+
+    body.section-changing .section-switch-overlay::after {
+      animation: beamSweep 1.12s var(--ease-smooth) 0.08s both;
+    }
+
+    .click-burst {
+      animation: clickBurst 0.82s var(--ease-smooth) forwards;
+      will-change: transform, opacity;
+    }
+
+    .reveal-prep {
+      transform: translate3d(0, 38px, 0) scale(0.99);
+      filter: blur(2px);
+      transition:
+        opacity 0.86s var(--ease-soft),
+        transform 0.96s var(--ease-smooth),
+        filter 0.8s var(--ease-soft);
+      will-change: opacity, transform, filter;
+    }
+
+    .reveal-prep.revealed {
+      transform: translate3d(0, 0, 0) scale(1);
+      filter: blur(0);
+    }
+
+    .hero .badge,
+    .hero h1,
+    .hero p,
+    .hero .btn-row {
+      transform: translate3d(0, 28px, 0);
+      animation-duration: 0.92s;
+      animation-timing-function: var(--ease-smooth);
+      will-change: transform, opacity, filter;
+    }
+
+    .hero-card {
+      animation: heroCardPop 1.02s var(--ease-smooth) 0.22s both, cardFloat 7s ease-in-out 1.35s infinite;
+      will-change: transform;
+    }
+
+    .hero-card .stat {
+      transform: translate3d(18px, 0, 0);
+      animation-duration: 0.62s;
+      animation-timing-function: var(--ease-smooth);
+    }
+
+    .card,
+    .case-study,
+    .contact-box,
+    .hero-card {
+      transition:
+        transform 0.42s var(--ease-smooth),
+        border-color 0.42s var(--ease-smooth),
+        box-shadow 0.42s var(--ease-smooth),
+        background 0.42s var(--ease-smooth);
+      will-change: transform;
+      backface-visibility: hidden;
+    }
+
+    .card:hover,
+    .case-study:hover,
+    .contact-box:hover {
+      transform: translate3d(0, -6px, 0);
+    }
+
+    .project-card::before {
+      transition: transform 0.58s var(--ease-smooth);
+    }
+
+    .btn {
+      transition:
+        transform 0.34s var(--ease-smooth),
+        box-shadow 0.34s var(--ease-smooth),
+        border-color 0.34s var(--ease-smooth),
+        background 0.34s var(--ease-smooth);
+      will-change: transform;
+    }
+
+    .btn::after {
+      transition: left 0.72s var(--ease-smooth);
+    }
+
+    .btn:hover {
+      transform: translate3d(0, -2px, 0);
+    }
+
+    .section-arrived {
+      animation: sectionLanding 1.08s var(--ease-smooth) both;
+    }
+
+    .section-arrived::after {
+      animation: sectionGlow 1.16s var(--ease-soft) both;
+    }
+
+    @keyframes overlayFlash {
+      0% { opacity: 0; }
+      18% { opacity: 0.92; }
+      62% { opacity: 0.82; }
+      100% { opacity: 0; }
+    }
+
+    @keyframes beamSweep {
+      0% { transform: skewX(-18deg) translate3d(-210%, 0, 0); opacity: 0; }
+      16% { opacity: 1; }
+      100% { transform: skewX(-18deg) translate3d(620%, 0, 0); opacity: 0; }
+    }
+
+    @keyframes clickBurst {
+      0% { opacity: 0.86; transform: translate3d(-50%, -50%, 0) scale(0.35); box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.46); }
+      100% { opacity: 0; transform: translate3d(-50%, -50%, 0) scale(4.7); box-shadow: 0 0 0 22px rgba(56, 189, 248, 0); }
+    }
+
+    @keyframes heroItemIn {
+      from { opacity: 0; transform: translate3d(0, 28px, 0); filter: blur(2px); }
+      to { opacity: 1; transform: translate3d(0, 0, 0); filter: blur(0); }
+    }
+
+    @keyframes heroCardPop {
+      from { opacity: 0; transform: translate3d(0, 34px, 0) scale(0.97); filter: blur(2px); }
+      to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); filter: blur(0); }
+    }
+
+    @keyframes statSlide {
+      from { opacity: 0; transform: translate3d(18px, 0, 0); }
+      to { opacity: 1; transform: translate3d(0, 0, 0); }
+    }
+
+    @keyframes cardFloat {
+      0%, 100% { transform: translate3d(0, 0, 0); }
+      50% { transform: translate3d(0, -6px, 0); }
+    }
+
+    @keyframes sectionLanding {
+      0% { opacity: 0.62; transform: translate3d(0, 34px, 0) scale(0.982); filter: blur(1px); }
+      58% { opacity: 1; transform: translate3d(0, -2px, 0) scale(1); filter: blur(0); }
+      100% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); filter: blur(0); }
+    }
+
+    @keyframes sectionGlow {
+      0% { opacity: 0; transform: scale(0.975); }
+      38% { opacity: 0.82; }
+      100% { opacity: 0; transform: scale(1.035); }
+    }
+
+    @keyframes backgroundDrift {
+      from { transform: translate3d(0, 0, 0) scale(1); }
+      to { transform: translate3d(32px, -28px, 0) scale(1.06); }
+    }
+
+
+    /* =========================
+       FINAL POLISH: slower scroll reveals, smoother nav transitions, Home link support
+       ========================= */
+
+    .reveal-prep {
+      transform: translate3d(0, 46px, 0) scale(0.988);
+      transition:
+        opacity 1.12s var(--ease-soft),
+        transform 1.28s var(--ease-smooth),
+        filter 1.05s var(--ease-soft);
+    }
+
+    .section-switch-overlay {
+      background:
+        radial-gradient(circle at 18% 30%, rgba(56, 189, 248, 0.30), transparent 32%),
+        radial-gradient(circle at 80% 70%, rgba(34, 197, 94, 0.24), transparent 32%),
+        rgba(2, 6, 23, 0.46);
+    }
+
+    .section-switch-overlay::before,
+    .section-switch-overlay::after {
+      width: 26%;
+      box-shadow: 0 0 64px rgba(56, 189, 248, 0.26);
+    }
+
+    body.section-changing .section-switch-overlay {
+      animation: overlayFlash 1.34s var(--ease-smooth) both;
+    }
+
+    body.section-changing .section-switch-overlay::before {
+      animation: beamSweep 1.34s var(--ease-smooth) both;
+    }
+
+    body.section-changing .section-switch-overlay::after {
+      animation: beamSweep 1.34s var(--ease-smooth) 0.12s both;
+    }
+
+    .section-arrived {
+      animation: sectionLanding 1.24s var(--ease-smooth) both;
+    }
+
+    .section-arrived::after {
+      animation: sectionGlow 1.32s var(--ease-soft) both;
+    }
+
+    @keyframes overlayFlash {
+      0% { opacity: 0; }
+      22% { opacity: 0.88; }
+      66% { opacity: 0.78; }
+      100% { opacity: 0; }
+    }
+
+    @keyframes beamSweep {
+      0% { transform: skewX(-18deg) translate3d(-230%, 0, 0); opacity: 0; }
+      18% { opacity: 0.95; }
+      100% { transform: skewX(-18deg) translate3d(650%, 0, 0); opacity: 0; }
+    }
+
+    @keyframes sectionLanding {
+      0% { opacity: 0.68; transform: translate3d(0, 30px, 0) scale(0.986); filter: blur(1px); }
+      62% { opacity: 1; transform: translate3d(0, -1px, 0) scale(1); filter: blur(0); }
+      100% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); filter: blur(0); }
+    }
+
+  
+
+    /* =========================
+       FINAL TUNING v2: slightly slower cards + one coherent nav transition
+       ========================= */
+
+    .reveal-prep {
+      transform: translate3d(0, 52px, 0) scale(0.988);
+      transition:
+        opacity 1.34s var(--ease-soft),
+        transform 1.58s var(--ease-smooth),
+        filter 1.24s var(--ease-soft);
+    }
+
+    .reveal-prep.revealed {
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+
+    .section-switch-overlay {
+      background:
+        radial-gradient(circle at 22% 34%, rgba(56, 189, 248, 0.24), transparent 34%),
+        radial-gradient(circle at 78% 68%, rgba(34, 197, 94, 0.20), transparent 34%),
+        rgba(2, 6, 23, 0.42);
+    }
+
+    .section-switch-overlay::before {
+      width: 58%;
+      height: 150%;
+      top: -25%;
+      left: -70%;
+      background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(56, 189, 248, 0.08) 14%,
+        rgba(56, 189, 248, 0.52) 38%,
+        rgba(34, 197, 94, 0.44) 62%,
+        rgba(255, 255, 255, 0.16) 76%,
+        transparent 100%
+      );
+      box-shadow: 0 0 88px rgba(56, 189, 248, 0.26);
+      transform: skewX(-14deg) translate3d(-105%, 0, 0);
+      opacity: 0;
+    }
+
+    .section-switch-overlay::after {
+      display: none;
+    }
+
+    body.section-changing .section-switch-overlay {
+      animation: overlayFlashCoherent 1.55s var(--ease-smooth) both;
+    }
+
+    body.section-changing .section-switch-overlay::before {
+      animation: coherentBeamSweep 1.55s var(--ease-smooth) both;
+    }
+
+    body.section-changing .section-switch-overlay::after {
+      animation: none;
+    }
+
+    .section-arrived {
+      animation: sectionLanding 1.36s var(--ease-smooth) both;
+    }
+
+    .section-arrived::after {
+      animation: sectionGlow 1.45s var(--ease-soft) both;
+    }
+
+    @keyframes overlayFlashCoherent {
+      0% { opacity: 0; }
+      24% { opacity: 0.78; }
+      62% { opacity: 0.70; }
+      100% { opacity: 0; }
+    }
+
+    @keyframes coherentBeamSweep {
+      0% {
+        transform: skewX(-14deg) translate3d(-105%, 0, 0);
+        opacity: 0;
+      }
+      16% { opacity: 0.92; }
+      70% { opacity: 0.88; }
+      100% {
+        transform: skewX(-14deg) translate3d(260%, 0, 0);
+        opacity: 0;
+      }
+    }
+
+
+
+    /* =========================
+       FINAL TUNING v3: delayed scroll detection + unified click transition
+       - Scroll detection line nudged down slightly.
+       - Card reveals are a touch slower.
+       - Nav click transition now masks the page jump and reveals the target while the sweep is still moving.
+       ========================= */
+
+    .reveal-prep {
+      transform: translate3d(0, 56px, 0) scale(0.988);
+      transition:
+        opacity 1.44s var(--ease-soft),
+        transform 1.74s var(--ease-smooth),
+        filter 1.34s var(--ease-soft);
+    }
+
+    .section-switch-overlay {
+      background: rgba(2, 6, 23, 0.46);
+      overflow: hidden;
+    }
+
+    .section-switch-overlay::before {
+      width: 92vw;
+      height: 190vh;
+      top: -45vh;
+      left: -110vw;
+      background: linear-gradient(
+        105deg,
+        transparent 0%,
+        rgba(56, 189, 248, 0.04) 10%,
+        rgba(56, 189, 248, 0.42) 38%,
+        rgba(34, 197, 94, 0.40) 58%,
+        rgba(255, 255, 255, 0.12) 72%,
+        transparent 100%
+      );
+      border-radius: 44px;
+      box-shadow: 0 0 110px rgba(56, 189, 248, 0.30);
+      transform: skewX(-13deg) translate3d(0, 0, 0);
+      opacity: 0;
+      display: block;
+    }
+
+    .section-switch-overlay::after {
+      display: none !important;
+    }
+
+    body.section-changing .section-switch-overlay {
+      animation: unifiedOverlayFade 1.48s var(--ease-smooth) both;
+    }
+
+    body.section-changing .section-switch-overlay::before {
+      animation: unifiedSectionSweep 1.48s var(--ease-smooth) both;
+    }
+
+    .section-arrived {
+      animation: unifiedSectionLanding 1.18s var(--ease-smooth) both;
+    }
+
+    .section-arrived::after {
+      animation: sectionGlow 1.28s var(--ease-soft) both;
+    }
+
+    @keyframes unifiedOverlayFade {
+      0% { opacity: 0; }
+      18% { opacity: 0.88; }
+      52% { opacity: 0.82; }
+      100% { opacity: 0; }
+    }
+
+    @keyframes unifiedSectionSweep {
+      0% {
+        opacity: 0;
+        transform: skewX(-13deg) translate3d(0, 0, 0);
+      }
+      14% { opacity: 0.95; }
+      74% { opacity: 0.88; }
+      100% {
+        opacity: 0;
+        transform: skewX(-13deg) translate3d(245vw, 0, 0);
+      }
+    }
+
+    @keyframes unifiedSectionLanding {
+      0% {
+        opacity: 0.82;
+        transform: translate3d(0, 18px, 0) scale(0.992);
+        filter: blur(0.6px);
+      }
+      55% {
+        opacity: 1;
+        transform: translate3d(0, 0, 0) scale(1);
+        filter: blur(0);
+      }
+      100% {
+        opacity: 1;
+        transform: translate3d(0, 0, 0) scale(1);
+        filter: blur(0);
+      }
+    }
+
+
+    /* =========================
+       FINAL QA PATCH: subtle card hover + safer hover/reveal compatibility
+       ========================= */
+
+    .card,
+    .case-study,
+    .contact-box {
+      transform-origin: center;
+    }
+
+    .card:hover,
+    .case-study:hover,
+    .contact-box:hover,
+    .card.reveal-prep.revealed:hover,
+    .case-study.reveal-prep.revealed:hover,
+    .contact-box.reveal-prep.revealed:hover {
+      transform: translate3d(0, -7px, 0) scale(1.006);
+      border-color: rgba(56, 189, 248, 0.62);
+      box-shadow:
+        0 24px 68px rgba(2, 6, 23, 0.52),
+        0 0 0 1px rgba(56, 189, 248, 0.14) inset,
+        0 0 32px rgba(56, 189, 248, 0.08);
+    }
+
+    .project-card:hover::before,
+    .project-card.reveal-prep.revealed:hover::before {
+      transform: scaleX(1);
+    }
+
+    .card:focus-within,
+    .case-study:focus-within,
+    .contact-box:focus-within {
+      border-color: rgba(56, 189, 248, 0.62);
+      box-shadow:
+        0 24px 68px rgba(2, 6, 23, 0.52),
+        0 0 0 1px rgba(56, 189, 248, 0.14) inset;
+    }
+
+    @media (hover: none) {
+      .card:hover,
+      .case-study:hover,
+      .contact-box:hover,
+      .card.reveal-prep.revealed:hover,
+      .case-study.reveal-prep.revealed:hover,
+      .contact-box.reveal-prep.revealed:hover {
+        transform: translate3d(0, 0, 0) scale(1);
+        box-shadow: none;
+      }
+    }
+
   </style>
 </head>
 <body>
@@ -325,6 +1161,7 @@
       <nav>
         <div class="logo">The | Data Analyst</div>
         <div class="nav-links">
+          <a href="#home">Home</a>
           <a href="#services">Services</a>
           <a href="#projects">Projects</a>
           <a href="#skills">Skills</a>
@@ -335,7 +1172,7 @@
   </header>
 
   <main>
-    <section class="hero container">
+    <section id="home" class="hero container">
       <div>
         <span class="badge">Junior Data Analyst | Power BI | SQL | Python | Excel</span>
         <h1>I turn messy business data into clear dashboards and insights.</h1>
@@ -604,5 +1441,205 @@
       © 2026 The. Junior Data Analyst Portfolio.
     </div>
   </footer>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      // Prevent refresh from restoring the previous section position.
+      // The live page should always reload at Home/top.
+      if ('scrollRestoration' in history) {
+        history.scrollRestoration = 'manual';
+      }
+
+      const cleanUrl = window.location.pathname + window.location.search;
+      if (window.location.hash) {
+        history.replaceState(null, document.title, cleanUrl);
+      }
+
+      // Run more than once because some browsers restore scroll after DOMContentLoaded.
+      window.scrollTo(0, 0);
+      window.requestAnimationFrame(() => window.scrollTo(0, 0));
+      window.setTimeout(() => window.scrollTo(0, 0), 80);
+
+      const header = document.querySelector("header");
+      const navLinks = Array.from(document.querySelectorAll(".nav-links a[href^='#']"));
+      const allInternalLinks = Array.from(document.querySelectorAll("a[href^='#']")).filter(link => {
+        const href = link.getAttribute("href");
+        return href && href.length > 1 && document.getElementById(href.slice(1));
+      });
+
+      // Add the transition overlay directly from JavaScript so it cannot be forgotten in the HTML.
+      const overlay = document.createElement("div");
+      overlay.className = "section-switch-overlay";
+      overlay.setAttribute("aria-hidden", "true");
+      document.body.prepend(overlay);
+
+      const DETECTION_NUDGE_PX = 10;
+
+      function getHeaderOffset() {
+        return (header ? header.offsetHeight : 0) + 22;
+      }
+
+      const sectionMap = [
+        { id: "home", nav: "#home" },
+        { id: "services", nav: "#services" },
+        { id: "projects", nav: "#projects" },
+        { id: "case-studies", nav: "#projects" },
+        { id: "skills", nav: "#skills" },
+        { id: "process", nav: "#skills" },
+        { id: "contact", nav: "#contact" }
+      ].map(item => ({ ...item, el: document.getElementById(item.id) })).filter(item => item.el);
+
+      function setActiveNav(navHash) {
+        navLinks.forEach(link => {
+          link.classList.toggle("is-active", link.getAttribute("href") === navHash);
+        });
+      }
+
+      function updateActiveNav() {
+        const checkpoint = window.scrollY + getHeaderOffset() + window.innerHeight * 0.28 + DETECTION_NUDGE_PX;
+        let active = null;
+
+        for (const section of sectionMap) {
+          if (section.el.offsetTop <= checkpoint) active = section;
+        }
+
+        if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 10) {
+          active = sectionMap.find(section => section.id === "contact") || active;
+        }
+
+        if (active) setActiveNav(active.nav);
+        else setActiveNav("#home");
+      }
+
+      // Scroll reveal: direct bounding-box method, reliable locally and on Vercel.
+      const revealItems = Array.from(document.querySelectorAll(
+        ".section-title, .section-subtitle, #services .card, #projects .card, #case-studies .case-study, #skills .card, #process .card, .contact-box"
+      ));
+
+      revealItems.forEach((item, index) => {
+        item.classList.add("reveal-prep");
+        item.style.setProperty("--reveal-delay", `${Math.min((index % 3) * 220, 440)}ms`);
+      });
+
+      function revealOnScroll() {
+        const triggerLine = window.innerHeight * 0.76 + DETECTION_NUDGE_PX;
+        revealItems.forEach(item => {
+          const rect = item.getBoundingClientRect();
+          if (rect.top < triggerLine && rect.bottom > 0) {
+            item.classList.add("revealed");
+          }
+        });
+      }
+
+      function burstAt(x, y) {
+        const burst = document.createElement("span");
+        burst.className = "click-burst";
+        burst.style.left = x + "px";
+        burst.style.top = y + "px";
+        document.body.appendChild(burst);
+        burst.addEventListener("animationend", () => burst.remove());
+      }
+
+      function forceReplayClass(element, className) {
+        if (!element) return;
+        element.classList.remove(className);
+        void element.offsetWidth;
+        element.classList.add(className);
+      }
+
+      function playSectionTransition(target) {
+        // Unified transition: the overlay masks the jump, then the target reveal begins while the sweep is still moving.
+        document.body.classList.remove("section-changing");
+        document.querySelectorAll(".section-arrived").forEach(section => section.classList.remove("section-arrived"));
+        void document.body.offsetWidth;
+        document.body.classList.add("section-changing");
+
+        const targetTop = Math.max(0, target.getBoundingClientRect().top + window.scrollY - getHeaderOffset());
+
+        window.setTimeout(() => {
+          window.scrollTo({ top: targetTop, behavior: "auto" });
+          forceReplayClass(target, "section-arrived");
+          revealOnScroll();
+          updateActiveNav();
+        }, 360);
+
+        window.setTimeout(() => {
+          revealOnScroll();
+          updateActiveNav();
+        }, 900);
+
+        window.setTimeout(() => {
+          document.body.classList.remove("section-changing");
+          target.classList.remove("section-arrived");
+          updateActiveNav();
+        }, 1720);
+      }
+
+      allInternalLinks.forEach(link => {
+        link.addEventListener("click", function (event) {
+          const href = link.getAttribute("href");
+          const target = document.getElementById(href.slice(1));
+          if (!target) return;
+
+          event.preventDefault();
+
+          const rect = link.getBoundingClientRect();
+          burstAt(rect.left + rect.width / 2, rect.top + rect.height / 2);
+
+          const mapped = sectionMap.find(section => section.id === target.id);
+          if (mapped) setActiveNav(mapped.nav);
+          else if (target.closest("#case-studies") || target.classList.contains("case-study")) setActiveNav("#projects");
+
+          // Do not leave #section in the URL. This keeps refresh behavior consistent:
+          // refreshing the page always returns to Home instead of the last clicked section.
+          try {
+            history.replaceState(null, document.title, cleanUrl);
+          } catch (error) {
+            // If history API fails, the page still navigates through JavaScript scrolling.
+          }
+
+          playSectionTransition(target);
+        });
+      });
+
+      let ticking = false;
+      function onScrollOrResize() {
+        if (!ticking) {
+          window.requestAnimationFrame(() => {
+            updateActiveNav();
+            revealOnScroll();
+            ticking = false;
+          });
+          ticking = true;
+        }
+      }
+
+      window.addEventListener("scroll", onScrollOrResize, { passive: true });
+      window.addEventListener("resize", onScrollOrResize);
+
+      // Initial load
+      revealOnScroll();
+      updateActiveNav();
+
+      // Force Home/top again after setup so refresh never returns to a previous section.
+      window.setTimeout(() => {
+        window.scrollTo(0, 0);
+        setActiveNav("#home");
+        revealOnScroll();
+      }, 120);
+
+      window.addEventListener("pageshow", function () {
+        if (window.location.hash) {
+          history.replaceState(null, document.title, cleanUrl);
+        }
+        window.setTimeout(() => {
+          window.scrollTo(0, 0);
+          setActiveNav("#home");
+          revealOnScroll();
+        }, 0);
+      });
+    });
+  </script>
+
 </body>
 </html>
