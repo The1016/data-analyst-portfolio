@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://zawwadul-analytics-portfolio.mistyplume2.chatgpt.site/sitemap.xml
