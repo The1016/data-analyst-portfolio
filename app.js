@@ -2,12 +2,26 @@
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
-const email = 'werewereside@gmail.com';
+// The optional single-file export supplies embedded copies of the same assets.
+const assetURL = path => window.PORTFOLIO_ASSETS?.[path] || path;
+const email = 'zawwadul@gmail.com';
+function emailDraftURL(subject = '', body = '') {
+  const url = new URL('https://mail.google.com/mail/');
+  url.searchParams.set('view', 'cm');
+  url.searchParams.set('fs', '1');
+  url.searchParams.set('to', email);
+  if (subject) url.searchParams.set('su', subject);
+  if (body) url.searchParams.set('body', body);
+  return url.href;
+}
 const motionPreferenceKey = 'portfolio-motion-v3';
 let userMotion = null;
 try { userMotion = localStorage.getItem(motionPreferenceKey); } catch (_) {}
 if (!['on', 'off'].includes(userMotion)) userMotion = null;
 let motionEnabled = userMotion !== 'off';
+const systemReducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+// Respect the OS by default, but let the visitor's explicit On choice win.
+const reducedMotion = () => userMotion !== 'on' && systemReducedMotion.matches;
 let renderField = () => {};
 let toastTimer;
 const motionAnimations = new Set();
@@ -24,24 +38,36 @@ function toast(message) {
 }
 function animateElement(el, frames, options = {}) {
   if (!motionEnabled || !el?.animate) return null;
-  const animation = el.animate(frames, { duration: 460, easing: 'cubic-bezier(.16,1,.3,1)', ...options });
+  let settings = { duration: 320, easing: 'cubic-bezier(.16,1,.3,1)', ...options };
+  if (reducedMotion()) {
+    frames = frames.map((frame, index) => {
+      const { transform, filter, ...rest } = frame;
+      return { ...rest, opacity: rest.opacity ?? (index === 0 ? 0 : 1) };
+    });
+    settings = { ...settings, duration: Math.min(settings.duration, 150), delay: 0 };
+  }
+  // An optional animation must never prevent the rest of the page starting.
+  let animation;
+  try { animation = el.animate(frames, settings); } catch (_) { return null; }
   motionAnimations.add(animation);
   animation.finished.then(() => motionAnimations.delete(animation), () => motionAnimations.delete(animation));
   return animation;
 }
 function animateContent(el) {
   el.getAnimations?.().forEach(animation => animation.cancel());
-  animateElement(el, [{ opacity: 0, transform: 'translateY(9px)' }, { opacity: 1, transform: 'translateY(0)' }], { duration: 380 });
+  animateElement(el, [{ opacity: 0, transform: 'translateY(7px)' }, { opacity: 1, transform: 'translateY(0)' }], { duration: 240 });
 }
 function applyMotion() {
   const root = document.documentElement;
+  const reduced = motionEnabled && reducedMotion();
   root.classList.toggle('motion-off', !motionEnabled);
-  root.classList.toggle('motion-on', motionEnabled);
+  root.classList.toggle('motion-on', motionEnabled && !reduced);
+  root.classList.toggle('motion-reduced', reduced);
   const button = $('#motion-toggle');
-  button.setAttribute('aria-pressed', String(motionEnabled));
-  $('span', button).textContent = motionEnabled ? 'on' : 'off';
-  button.setAttribute('aria-label', motionEnabled ? 'Turn animations off' : 'Turn animations on');
-  button.title = motionEnabled ? 'Animations enabled. Click to reduce motion.' : 'Animations disabled. Click to enable.';
+  button.setAttribute('aria-pressed', reduced ? 'mixed' : String(motionEnabled));
+  $('span', button).textContent = reduced ? 'reduced' : motionEnabled ? 'on' : 'off';
+  button.setAttribute('aria-label', reduced ? 'Enable full animations' : motionEnabled ? 'Turn animations off' : 'Turn animations on');
+  button.title = reduced ? 'Following your system’s reduced-motion setting. Click to enable full animations.' : motionEnabled ? 'Animations enabled. Click to turn motion off.' : 'Animations disabled. Click to enable.';
   if (!motionEnabled) {
     pendingSectionReplays.clear();
     pendingHeroReplay = false;
@@ -53,12 +79,21 @@ function applyMotion() {
   renderField();
 }
 applyMotion();
+systemReducedMotion.addEventListener('change', () => {
+  motionAnimations.forEach(animation => animation.cancel());
+  motionAnimations.clear();
+  applyMotion();
+});
 $('#motion-toggle').addEventListener('click', () => {
-  motionEnabled = !motionEnabled;
+  motionEnabled = reducedMotion() || !motionEnabled;
   userMotion = motionEnabled ? 'on' : 'off';
   try { localStorage.setItem(motionPreferenceKey, userMotion); } catch (_) {}
   applyMotion();
-  toast(motionEnabled ? 'Animations enabled.' : 'Reduced motion enabled.');
+  if (motionEnabled) {
+    resetSectionAnimations($('#' + (currentSection || 'home')));
+    requestScrollUpdate(false);
+  }
+  toast(motionEnabled ? 'Animations enabled.' : 'Animations disabled.');
 });
 
 function playSectionEntrance(element, frames, options) {
@@ -93,13 +128,13 @@ function processSectionReplays(headerHeight) {
   for (const [element, delay] of pendingSectionReplays) {
     if (!inView(element)) continue;
     pendingSectionReplays.delete(element);
-    playSectionEntrance(element, [{ opacity: 0, transform: 'translateY(32px)' }, { opacity: 1, transform: 'translateY(0)' }], { duration: 850, delay });
-    $$('.bar-fill', element).forEach((bar, index) => playSectionEntrance(bar, [{ transform: 'scaleX(0)' }, { transform: 'scaleX(1)' }], { duration: 900, delay: delay + index * 55 }));
+    playSectionEntrance(element, [{ opacity: 0, transform: 'translateY(20px)' }, { opacity: 1, transform: 'translateY(0)' }], { duration: 600, delay });
+    $$('.bar-fill', element).forEach((bar, index) => playSectionEntrance(bar, [{ transform: 'scaleX(0)' }, { transform: 'scaleX(1)' }], { duration: 600, delay: delay + index * 40 }));
   }
   if (pendingHeroReplay && inView($('#hero-title'))) {
     pendingHeroReplay = false;
-    $$('.hero-line span').forEach((line, index) => playSectionEntrance(line, [{ transform: 'translateY(112%)' }, { transform: 'translateY(0)' }], { duration: 1100, delay: index * 130 }));
-    $$('.hero-enter').forEach((element, index) => playSectionEntrance(element, [{ opacity: 0, transform: 'translateY(20px)' }, { opacity: 1, transform: 'translateY(0)' }], { duration: 950, delay: 180 + index * 70 }));
+    $$('.hero-line span').forEach((line, index) => playSectionEntrance(line, [{ transform: 'translateY(110%)' }, { transform: 'translateY(0)' }], { duration: 720, delay: index * 100 }));
+    $$('.hero-enter').forEach((element, index) => playSectionEntrance(element, [{ opacity: 0, transform: 'translateY(16px)' }, { opacity: 1, transform: 'translateY(0)' }], { duration: 600, delay: 100 + index * 50 }));
   }
 }
 
@@ -123,7 +158,7 @@ document.addEventListener('keydown', event => {
 document.addEventListener('click', event => {
   if (!mobileNav.hidden && !event.target.closest('.site-header')) closeMenu();
 });
-matchMedia('(min-width: 1001px)').addEventListener('change', e => { if (e.matches) closeMenu(); });
+matchMedia('(min-width: 75.01em)').addEventListener('change', e => { if (e.matches) closeMenu(); });
 
 const navLinks = $$('[data-nav]');
 const trackedSections = ['home', 'work', 'services', 'insight', 'approach', 'about', 'contact'].map(id => $('#' + id));
@@ -182,7 +217,10 @@ function navigateTo(id) {
   if (location.hash !== '#' + id) {
     try { history.pushState(null, '', '#' + id); } catch (_) { location.hash = '#' + id; }
   }
-  target.scrollIntoView({ behavior: motionEnabled ? 'smooth' : 'instant', block: 'start' });
+  target.scrollIntoView({ behavior: motionEnabled && !reducedMotion() ? 'smooth' : 'instant', block: 'start' });
+  const focusTarget = $('h1,h2', target) || target;
+  focusTarget.setAttribute('tabindex', '-1');
+  focusTarget.focus({ preventScroll: true });
   requestScrollUpdate(false);
   navigationTimer = setTimeout(() => { navigatingTo = null; updateScrollState(true); }, motionEnabled ? 1100 : 0);
 }
@@ -213,13 +251,15 @@ async function copyText(value, message) {
     input.value = value;
     input.setAttribute('readonly', '');
     input.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0';
-    document.body.appendChild(input);
+    // Background content is inert while a modal is open, including under file://.
+    // Keep the fallback inside the active dialog so it can receive selection.
+    ($('dialog[open]') || document.body).appendChild(input);
     input.select();
     try { copied = document.execCommand('copy'); } catch (_) {}
     input.remove();
     focused?.focus({ preventScroll: true });
   }
-  toast(copied ? message : 'Select and copy the email address, or use the email link.');
+  toast(copied ? message : 'Copy did not complete. Please select and copy the text manually.');
   return copied;
 }
 $('#copy-email').addEventListener('click', () => copyText(email, 'Email address copied.'));
@@ -230,7 +270,7 @@ const projectData = {
   sales: {
     number: '01', type: 'Reporting automation', title: 'Automated Sales Reporting System',
     description: 'A repeatable workflow that turns monthly sales CSV files into clean reporting data and a four-page Power BI dashboard.',
-    metrics: [['2.30M', 'Approx. baseline revenue'], ['12.47%', 'Baseline profit margin'], ['4', 'Power BI report pages']],
+    metrics: [['2.46M', 'Revenue in pictured dataset'], ['12.31%', 'Margin in pictured dataset'], ['4', 'Power BI report pages']],
     problem: 'A business receives separate monthly sales files. Repeating the same cleaning, combining, and reporting work every month makes a consistent overview harder to maintain.',
     steps: ['Load and combine monthly CSV files from a single input folder.', 'Remove duplicates, standardize dates and text, and create reporting fields with Python and Pandas.', 'Export clean_sales_data.csv and data_quality_summary.csv.', 'Use DAX measures and a date table in Power BI, then refresh the report after rerunning the pipeline.'],
     outcomes: ['Executive sales overview with revenue, profit, orders, and monthly performance.', 'Product and margin analysis, including discount impact and low-margin products.', 'Customer and regional analysis with performance and repeat-customer views.', 'A dedicated data quality and refresh summary page.'],
@@ -334,7 +374,7 @@ const serviceOffers = {
   excel: ['A workbook for your business', 'A scoped adaptation could organize your orders, stock, expenses, and customers into a workbook with formulas and an operational dashboard.', 'Custom Excel business tracker'],
   retail: ['A dashboard for business decisions', 'A scoped adaptation could clean your sales data, define meaningful metrics, and investigate product margins, discounts, and customer profitability.', 'Profitability dashboard project']
 };
-projectData.sales.limitation += ' The screenshots show a refreshed snapshot, while the baseline figures above describe the earlier period documented in the README.';
+projectData.sales.limitation += ' The screenshots and summary metrics show a refreshed snapshot. The useful finding describes the earlier reporting period documented in the project README.';
 projectData.excel.limitation = 'The workbook and screenshots demonstrate a portfolio example. The sample includes filtered views; no measured client impact is claimed. A public repository or workbook download has not been supplied.';
 projectData.radar.tools = ['Python', 'Pandas', 'SQL / SQLite', 'Power BI', 'pytest', 'Data quality'];
 
@@ -343,21 +383,48 @@ const imageDialog = $('#image-dialog');
 let lastCaseTrigger, activeProject, returnHash = '#work';
 let closeSequence = 0;
 let galleryProject, galleryIndex = 0, lastImageTrigger;
+let suspendedCase = false, suspendedCaseScroll = 0;
+let readerUpdatePending = false;
+
+function updateReader() {
+  readerUpdatePending = false;
+  if (!dialog.open) return;
+  const toolbarHeight = $('.dialog-toolbar', dialog).getBoundingClientRect().height;
+  const index = $('.case-index', dialog);
+  const indexHeight = matchMedia('(max-width: 37.5em)').matches ? 0 : index.getBoundingClientRect().height;
+  dialog.style.setProperty('--reader-toolbar-height', toolbarHeight + 'px');
+  dialog.style.setProperty('--reader-offset', (toolbarHeight + indexHeight + 20) + 'px');
+  const sections = $$('[data-reader-section]', dialog);
+  const probe = dialog.getBoundingClientRect().top + toolbarHeight + indexHeight + 32;
+  let active = sections[0]?.id;
+  for (const section of sections) if (section.getBoundingClientRect().top <= probe) active = section.id;
+  $$('.case-index button', dialog).forEach(button => {
+    if (button.dataset.caseJump === active) button.setAttribute('aria-current', 'true');
+    else button.removeAttribute('aria-current');
+  });
+}
+function requestReaderUpdate() {
+  if (readerUpdatePending || !dialog.open) return;
+  readerUpdatePending = true;
+  requestAnimationFrame(updateReader);
+}
+dialog.addEventListener('scroll', requestReaderUpdate, { passive: true });
+addEventListener('resize', requestReaderUpdate);
 
 function lockBody() { document.body.classList.toggle('modal-open', dialog.open || imageDialog.open); }
 function screenshotMarkup(key, index = 0) {
   const [file, title] = galleries[key][index];
-  return `<button class="dashboard-shot" data-image="${key}" data-image-index="${index}" aria-label="Enlarge ${escapeHTML(title)}"><img src="assets/projects/${file}" alt="${escapeHTML(title)} — actual ${escapeHTML(projectData[key].title)} screenshot" width="1440" height="810" decoding="async"><span class="image-expand">View full size <i aria-hidden="true">↗</i></span></button>`;
+  return `<button class="dashboard-shot" data-image="${key}" data-image-index="${index}" aria-label="Enlarge ${escapeHTML(title)}"><img src="${assetURL('assets/projects/' + file)}" alt="${escapeHTML(title)} — actual ${escapeHTML(projectData[key].title)} screenshot" width="1440" height="810" decoding="async"><span class="image-expand">View full size <i aria-hidden="true">↗</i></span></button>`;
 }
 function galleryMarkup(key) {
   const shots = galleries[key];
   if (!shots) return '';
-  return `<section class="case-gallery" aria-label="Actual project screenshots"><div class="case-gallery-top"><h3>Inside the actual project</h3><span>${shots.length} screenshots · click to enlarge</span></div><div id="case-gallery-image">${screenshotMarkup(key)}</div><div class="case-gallery-tabs" role="group" aria-label="Choose a project screenshot">${shots.map(([, title], index) => `<button data-gallery-index="${index}" aria-pressed="${index === 0}">${escapeHTML(title)}</button>`).join('')}</div><p class="case-gallery-caption" id="case-gallery-caption" role="status" aria-live="polite">${escapeHTML(shots[0][2])}</p></section>`;
+  return `<section class="case-gallery" id="reader-screens" data-reader-section aria-label="Actual project screenshots"><div class="case-gallery-top"><h3>Inside the actual project</h3><span>${shots.length} screenshots · select to enlarge</span></div><div id="case-gallery-image">${screenshotMarkup(key)}</div><div class="case-gallery-tabs" role="group" aria-label="Choose a project screenshot">${shots.map(([, title], index) => `<button data-gallery-index="${index}" aria-pressed="${index === 0}">${escapeHTML(title)}</button>`).join('')}</div><p class="case-gallery-caption" id="case-gallery-caption" role="status" aria-live="polite">${escapeHTML(shots[0][2])}</p></section>`;
 }
 function serviceMarkup(key) {
   const offer = serviceOffers[key];
   if (!offer) return '';
-  return `<section class="case-service"><h3>${escapeHTML(offer[0])}</h3><p>${escapeHTML(offer[1])}</p><a class="text-link" href="mailto:${email}?subject=${encodeURIComponent(offer[2])}">Discuss a similar project <span aria-hidden="true">↗</span></a></section>`;
+  return `<section class="case-service"><h3>${escapeHTML(offer[0])}</h3><p>${escapeHTML(offer[1])}</p><a class="text-link" href="${escapeHTML(emailDraftURL(offer[2]))}" target="_blank" rel="noopener noreferrer" title="Open an email draft in Gmail (new tab)">Discuss a similar project <span aria-hidden="true">↗</span></a></section>`;
 }
 function openCase(key, updateURL = true, trigger = null) {
   const project = projectData[key];
@@ -368,15 +435,51 @@ function openCase(key, updateURL = true, trigger = null) {
   if (trigger) lastCaseTrigger = trigger;
   activeProject = key;
   closeMenu();
-  $('#case-content').innerHTML = `<p class="eyebrow case-kicker">${project.number} / ${escapeHTML(project.type)}</p><h2 class="case-title" id="case-title">${escapeHTML(project.title)}</h2><p class="case-subtitle">${escapeHTML(project.description)}</p><div class="tags">${project.tools.map(tool => `<span>${escapeHTML(tool)}</span>`).join('')}</div>${galleryMarkup(key)}<div class="case-metrics">${project.metrics.map(([value, label]) => `<div class="case-metric"><strong>${escapeHTML(value)}</strong><span>${escapeHTML(label)}</span></div>`).join('')}</div><section class="case-section"><h3>The question</h3><p>${escapeHTML(project.problem)}</p></section><section class="case-section"><h3>How I approached it</h3><ol>${project.steps.map(text => `<li>${escapeHTML(text)}</li>`).join('')}</ol></section><section class="case-section"><h3>What I built</h3><ul>${project.outcomes.map(text => `<li>${escapeHTML(text)}</li>`).join('')}</ul></section><section class="case-section"><h3>The useful finding</h3><p>${escapeHTML(project.finding)}</p></section>${serviceMarkup(key)}<p class="case-note">${escapeHTML(project.limitation)}</p><div class="case-links">${project.repo ? `<a class="button button-lime" href="${escapeHTML(project.repo)}" target="_blank" rel="noopener noreferrer">Explore the repository <span aria-hidden="true">↗</span></a>` : `<a class="button button-lime" href="mailto:${email}?subject=Excel%20Business%20Tracker%20inquiry">Ask about the workbook <span aria-hidden="true">↗</span></a>`}<button class="button button-outline" id="copy-case">Copy case study link <span aria-hidden="true">↗</span></button></div>`;
+  $('#reader-project').textContent = project.title;
+  const readerSections = [['reader-summary', 'At a glance'], ...(galleries[key] ? [['reader-screens', 'Screenshots']] : []), ['reader-built', 'What I built'], ['reader-method', 'Process'], ['reader-findings', 'Findings']];
+  $('#case-content').innerHTML = `
+    <p class="eyebrow case-kicker">${escapeHTML(project.type)} · Portfolio project</p>
+    <h2 class="case-title" id="case-title">${escapeHTML(project.title)}</h2>
+    <p class="case-subtitle">${escapeHTML(project.description)}</p>
+    <div class="tags">${project.tools.map(tool => `<span>${escapeHTML(tool)}</span>`).join('')}</div>
+    <nav class="case-index" aria-label="Case study sections">${readerSections.map(([id, label]) => `<button data-case-jump="${id}">${label}</button>`).join('')}</nav>
+    <div id="reader-summary" data-reader-section>
+      <div class="case-metrics">${project.metrics.map(([value, label]) => `<div class="case-metric"><strong>${escapeHTML(value)}</strong><span>${escapeHTML(label)}</span></div>`).join('')}</div>
+      ${key === 'sales' ? '<p class="snapshot-note">The pictured snapshot shows 2.46M revenue, 303.36K profit, and 12.31% margin. The original README documents an earlier period (2.30M revenue and 12.47% margin). These are portfolio dataset figures.</p>' : ''}
+      <section class="case-section"><h3>The question</h3><p>${escapeHTML(project.problem)}</p></section>
+    </div>
+    ${galleryMarkup(key)}
+    <section class="case-section" id="reader-built" data-reader-section><h3>What I built</h3><ul>${project.outcomes.map(text => `<li>${escapeHTML(text)}</li>`).join('')}</ul></section>
+    <section class="case-section" id="reader-method" data-reader-section><h3>How I approached it</h3><ol>${project.steps.map(text => `<li>${escapeHTML(text)}</li>`).join('')}</ol></section>
+    <section class="case-section" id="reader-findings" data-reader-section><h3>The useful finding</h3><p>${escapeHTML(project.finding)}</p></section>
+    ${serviceMarkup(key)}
+    <p class="case-note">${escapeHTML(project.limitation)}</p>
+    <div class="case-links">${project.repo ? `<a class="button button-lime" href="${escapeHTML(project.repo)}" target="_blank" rel="noopener noreferrer">Explore the repository <span aria-hidden="true">↗</span></a>` : `<a class="button button-lime" href="${escapeHTML(emailDraftURL('Excel Business Tracker inquiry'))}" target="_blank" rel="noopener noreferrer" title="Open an email draft in Gmail (new tab)">Ask about the workbook <span aria-hidden="true">↗</span></a>`}<button class="button button-outline" id="copy-case">Copy case study link <span aria-hidden="true">↗</span></button></div>`;
   if (!dialog.open) dialog.showModal();
   else animateContent($('#case-content'));
   lockBody();
   dialog.scrollTop = 0;
+  updateReader();
   $('.close-dialog', dialog).focus({ preventScroll: true });
   $('#copy-case').addEventListener('click', () => {
     const base = location.protocol === 'file:' ? $('link[rel="canonical"]').getAttribute('href') : location.origin + location.pathname;
-    copyText(`${base.replace(/#.*$/, '')}#case-${activeProject}`, 'Case study link copied.');
+    const url = `${base.replace(/#.*$/, '')}#case-${activeProject}`;
+    copyText(url, 'Case study link copied.').then(copied => {
+      if (copied) return;
+      let fallback = $('#case-copy-fallback');
+      if (!fallback) {
+        fallback = document.createElement('input');
+        fallback.id = 'case-copy-fallback';
+        fallback.className = 'copy-fallback';
+        fallback.type = 'text';
+        fallback.readOnly = true;
+        fallback.setAttribute('aria-label', 'Case study link — select and copy');
+        $('.case-links', dialog).appendChild(fallback);
+      }
+      fallback.value = url;
+      fallback.focus({ preventScroll: true });
+      fallback.select();
+    });
   });
   if (updateURL && location.hash !== '#case-' + key) {
     try { history.pushState({ portfolioCase: key }, '', '#case-' + key); } catch (_) {}
@@ -402,6 +505,7 @@ function closeOnBackdrop(el, close) {
 }
 closeOnBackdrop(dialog, closeCase);
 dialog.addEventListener('close', () => {
+  if (suspendedCase || dialog.open) return;
   lockBody();
   if (location.hash === '#case-' + activeProject) {
     try { history.replaceState(null, '', returnHash); } catch (_) {}
@@ -416,8 +520,20 @@ function renderFullImage() {
   $('#image-project').textContent = projectData[galleryProject].title;
   $('#image-title').textContent = title;
   const full = $('#image-full');
-  full.src = 'assets/projects/' + file;
+  full.src = assetURL('assets/projects/' + file);
   full.alt = title + ' — actual project screenshot';
+  const original = $('#image-original');
+  const originalURL = assetURL('assets/projects/' + file);
+  original.setAttribute('href', originalURL);
+  // Chrome blocks top-level data: navigation. The standalone export offers
+  // the same original bytes as a download instead of opening a blank tab.
+  if (originalURL.startsWith('data:')) {
+    original.setAttribute('download', file);
+    original.innerHTML = 'Download original image <span aria-hidden="true">↓</span>';
+  } else {
+    original.removeAttribute('download');
+    original.innerHTML = 'Open original image <span aria-hidden="true">↗</span>';
+  }
   $('#image-counter').textContent = `${galleryIndex + 1} / ${shots.length}`;
   $('#image-prev').hidden = $('#image-next').hidden = shots.length < 2;
   animateContent($('.image-stage'));
@@ -429,6 +545,12 @@ function openImage(key, index, trigger) {
   galleryProject = key;
   galleryIndex = Math.max(0, Math.min(galleries[key].length - 1, Number(index) || 0));
   lastImageTrigger = trigger;
+  if (dialog.open) {
+    // Show one modal at a time, then restore the reader's exact position.
+    suspendedCase = true;
+    suspendedCaseScroll = dialog.scrollTop;
+    dialog.close();
+  }
   renderFullImage();
   if (!imageDialog.open) imageDialog.showModal();
   lockBody();
@@ -454,12 +576,34 @@ imageDialog.addEventListener('keydown', event => {
   if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') { event.preventDefault(); stepImage(event.key === 'ArrowRight' ? 1 : -1); }
 });
 imageDialog.addEventListener('close', () => {
+  if (imageDialog.open) return;
+  if (suspendedCase) {
+    suspendedCase = false;
+    dialog.showModal();
+    dialog.scrollTop = suspendedCaseScroll;
+    updateReader();
+  }
   lockBody();
-  if (lastImageTrigger?.isConnected) lastImageTrigger.focus({ preventScroll: true });
+  if (lastImageTrigger?.isConnected && (!dialog.open || lastImageTrigger.closest('#case-dialog'))) lastImageTrigger.focus({ preventScroll: true });
 });
 closeOnBackdrop(imageDialog, closeImage);
 
 document.addEventListener('click', event => {
+  const jumpButton = event.target.closest('[data-case-jump]');
+  if (jumpButton && dialog.open) {
+    const section = $('#' + jumpButton.dataset.caseJump, dialog);
+    if (section) {
+      section.scrollIntoView({ behavior: motionEnabled && !reducedMotion() ? 'smooth' : 'instant', block: 'start' });
+      const heading = $('h3', section) || section;
+      heading.setAttribute('tabindex', '-1');
+      heading.focus({ preventScroll: true });
+      $$('.case-index button', dialog).forEach(button => {
+        if (button === jumpButton) button.setAttribute('aria-current', 'true');
+        else button.removeAttribute('aria-current');
+      });
+    }
+    return;
+  }
   const caseButton = event.target.closest('[data-case]');
   if (caseButton) { openCase(caseButton.dataset.case, true, caseButton); return; }
   const shotButton = event.target.closest('[data-image]');
@@ -477,11 +621,13 @@ function handleProjectHash() {
   if (location.hash.startsWith('#case-')) {
     const key = location.hash.slice(6);
     if (projectData[key]) {
+      suspendedCase = false;
       if (imageDialog.open) imageDialog.close();
       openCase(key, false);
     }
   } else {
     closeSequence++;
+    suspendedCase = false;
     if (imageDialog.open) imageDialog.close();
     if (dialog.open) dialog.close();
     requestScrollUpdate(false);
@@ -514,7 +660,7 @@ $$('[data-filter]').forEach(button => button.addEventListener('click', () => {
   if (motionEnabled) projectItems.filter(item => !item.hidden).forEach((item, index) => {
     const old = oldRects.get(item), rect = item.getBoundingClientRect();
     const transform = old ? `translate(${old.left - rect.left}px,${old.top - rect.top}px)` : 'translateY(18px)';
-    animateElement(item, [{ opacity: old ? 1 : 0, transform }, { opacity: 1, transform: 'translate(0,0)' }], { duration: 520, delay: old ? 0 : Math.min(index * 35, 140) });
+    animateElement(item, [{ opacity: old ? 1 : 0, transform }, { opacity: 1, transform: 'translate(0,0)' }], { duration: 320, delay: old ? 0 : Math.min(index * 30, 120) });
   });
   requestScrollUpdate(false);
 }));
@@ -548,7 +694,7 @@ function connectTabs(container, dataKey, onSelect, vertical = false) {
 const reportKeys = ['executive', 'products', 'customers', 'quality'];
 const preloadedScreenshots = new Map();
 function preloadScreenshot(key, index) {
-  const path = 'assets/projects/' + galleries[key][index][0];
+  const path = assetURL('assets/projects/' + galleries[key][index][0]);
   if (preloadedScreenshots.has(path) || typeof Image === 'undefined') return;
   const image = new Image();
   image.src = path;
@@ -602,7 +748,7 @@ function renderLab(key, id) {
     $('#delivery-case').addEventListener('click', event => openCase('ecommerce', true, event.currentTarget));
   }
 }
-const compactLab = matchMedia('(max-width: 600px)');
+const compactLab = matchMedia('(max-width: 37.5em)');
 function updateLabOrientation() { $('.lab-tabs').setAttribute('aria-orientation', compactLab.matches ? 'horizontal' : 'vertical'); }
 compactLab.addEventListener('change', updateLabOrientation);
 updateLabOrientation();
@@ -677,7 +823,7 @@ try {
   let lastTime = 0, lastDraw = 0;
   function animate(time) {
     raf = 0;
-    if (!motionEnabled || !visible || document.hidden) return;
+    if (!motionEnabled || reducedMotion() || !visible || document.hidden) return;
     const dt = Math.min((time - (lastTime || time)) / 1000, .05); lastTime = time;
     tick += dt;
     const smoothing = 1 - Math.exp(-dt * 3.3);
@@ -689,7 +835,7 @@ try {
   }
   renderField = () => {
     cancelAnimationFrame(raf);raf = 0;lastTime = 0;
-    if (!motionEnabled) { blend = organized ? 1 : 0; pointerX = pointerY = 0; draw(); }
+    if (!motionEnabled || reducedMotion()) { blend = organized ? 1 : 0; pointerX = pointerY = 0; draw(); }
     else if (visible && !document.hidden) raf = requestAnimationFrame(animate);
   };
   field.addEventListener('pointermove', event => {
