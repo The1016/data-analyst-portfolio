@@ -15,18 +15,18 @@ function emailDraftURL(subject = '', body = '') {
   return url.href;
 }
 const motionPreferenceKey = 'portfolio-motion-v3';
-let userMotion = null;
-try { userMotion = localStorage.getItem(motionPreferenceKey); } catch (_) {}
-if (!['on', 'off'].includes(userMotion)) userMotion = null;
+let userMotion = 'on';
+try { userMotion = localStorage.getItem(motionPreferenceKey) || 'on'; } catch (_) {}
+if (!['on', 'off'].includes(userMotion)) userMotion = 'on';
 let motionEnabled = userMotion !== 'off';
-const systemReducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
-// Respect the OS by default, but let the visitor's explicit On choice win.
-const reducedMotion = () => userMotion !== 'on' && systemReducedMotion.matches;
 let renderField = () => {};
+let resetPreviewDepth = () => {};
+const gentleDetails = matchMedia('(prefers-reduced-motion: reduce)');
 let toastTimer;
 const motionAnimations = new Set();
 const pendingSectionReplays = new Map();
 const sectionReplayAnimations = new Map();
+const pendingDetailEntrances = new Map();
 let pendingHeroReplay = false;
 
 function toast(message) {
@@ -38,14 +38,7 @@ function toast(message) {
 }
 function animateElement(el, frames, options = {}) {
   if (!motionEnabled || !el?.animate) return null;
-  let settings = { duration: 320, easing: 'cubic-bezier(.16,1,.3,1)', ...options };
-  if (reducedMotion()) {
-    frames = frames.map((frame, index) => {
-      const { transform, filter, ...rest } = frame;
-      return { ...rest, opacity: rest.opacity ?? (index === 0 ? 0 : 1) };
-    });
-    settings = { ...settings, duration: Math.min(settings.duration, 150), delay: 0 };
-  }
+  const settings = { duration: 320, easing: 'cubic-bezier(.22,1,.36,1)', ...options };
   // An optional animation must never prevent the rest of the page starting.
   let animation;
   try { animation = el.animate(frames, settings); } catch (_) { return null; }
@@ -55,21 +48,20 @@ function animateElement(el, frames, options = {}) {
 }
 function animateContent(el) {
   el.getAnimations?.().forEach(animation => animation.cancel());
-  animateElement(el, [{ opacity: 0, transform: 'translateY(7px)' }, { opacity: 1, transform: 'translateY(0)' }], { duration: 240 });
+  animateElement(el, [{ opacity: 0, transform: 'translateY(7px)' }, { opacity: 1, transform: 'translateY(0)' }], { duration: 280 });
 }
 function applyMotion() {
   const root = document.documentElement;
-  const reduced = motionEnabled && reducedMotion();
   root.classList.toggle('motion-off', !motionEnabled);
-  root.classList.toggle('motion-on', motionEnabled && !reduced);
-  root.classList.toggle('motion-reduced', reduced);
+  root.classList.toggle('motion-on', motionEnabled);
   const button = $('#motion-toggle');
-  button.setAttribute('aria-pressed', reduced ? 'mixed' : String(motionEnabled));
-  $('span', button).textContent = reduced ? 'reduced' : motionEnabled ? 'on' : 'off';
-  button.setAttribute('aria-label', reduced ? 'Enable full animations' : motionEnabled ? 'Turn animations off' : 'Turn animations on');
-  button.title = reduced ? 'Following your system’s reduced-motion setting. Click to enable full animations.' : motionEnabled ? 'Animations enabled. Click to turn motion off.' : 'Animations disabled. Click to enable.';
+  button.setAttribute('aria-pressed', String(motionEnabled));
+  $('span', button).textContent = motionEnabled ? 'on' : 'off';
+  button.setAttribute('aria-label', motionEnabled ? 'Turn animations off' : 'Turn animations on');
+  button.title = motionEnabled ? 'Animations enabled. Click to turn motion off.' : 'Animations disabled. Click to enable.';
   if (!motionEnabled) {
     pendingSectionReplays.clear();
+    pendingDetailEntrances.clear();
     pendingHeroReplay = false;
     motionAnimations.forEach(animation => animation.cancel());
     motionAnimations.clear();
@@ -77,15 +69,11 @@ function applyMotion() {
     $$('.reveal').forEach(el => el.classList.add('visible'));
   }
   renderField();
+  if (!motionEnabled) resetPreviewDepth();
 }
 applyMotion();
-systemReducedMotion.addEventListener('change', () => {
-  motionAnimations.forEach(animation => animation.cancel());
-  motionAnimations.clear();
-  applyMotion();
-});
 $('#motion-toggle').addEventListener('click', () => {
-  motionEnabled = reducedMotion() || !motionEnabled;
+  motionEnabled = !motionEnabled;
   userMotion = motionEnabled ? 'on' : 'off';
   try { localStorage.setItem(motionPreferenceKey, userMotion); } catch (_) {}
   applyMotion();
@@ -106,8 +94,63 @@ function playSectionEntrance(element, frames, options) {
   };
   animation.finished.then(clear, clear);
 }
+function detailInView(element) {
+  const rect = element.getBoundingClientRect();
+  return rect.width > 0 && rect.height > 0 && rect.bottom > 0 && rect.top < innerHeight - 20;
+}
+function playDetailEntrance(element, frames, options) {
+  if (!motionEnabled) return;
+  // On a phone a report sits below its project description. Wait for that
+  // report itself, instead of spending its entrance above the viewport.
+  if (!detailInView(element)) { pendingDetailEntrances.set(element, { frames, options }); return; }
+  pendingDetailEntrances.delete(element);
+  playSectionEntrance(element, frames, options);
+}
+function processDetailEntrances() {
+  for (const [element, { frames, options }] of pendingDetailEntrances) {
+    if (!element.isConnected) { pendingDetailEntrances.delete(element); continue; }
+    if (detailInView(element)) playDetailEntrance(element, frames, options);
+  }
+}
+// Each reveal has one small secondary beat. No timers hide content, and all
+// animations share the same cancellation path as the main Motion switch.
+function animateRevealDetails(element, delay = 0) {
+  if (!motionEnabled) return;
+  const gentle = gentleDetails.matches;
+  const enter = (target, transform, offset = 0, duration = 650) => {
+    if (!target) return;
+    playDetailEntrance(target, [
+      { opacity: 0, transform: gentle ? 'none' : transform },
+      { opacity: 1, transform: 'none' }
+    ], { duration: gentle ? 150 : duration, delay: gentle ? 0 : delay + offset, fill: 'backwards' });
+  };
+  if (element.classList.contains('section-heading')) {
+    enter($('h2 .muted', element), 'translateY(12px)', 100, 700);
+    enter($('.section-intro', element), 'translateY(8px)', 160, 650);
+  }
+  if (element.classList.contains('project-item')) {
+    const preview = $('.report-preview,.priority-image,.radar-feature-visual', element);
+    enter(preview, 'perspective(1000px) translateY(24px) rotateX(5deg) scale(.985)', 100, 850);
+    $$('.feature-facts div,.radar-proof div,.radar-flow span', element).forEach((part, i) => enter(part, 'translateY(10px)', 140 + i * 65, 550));
+  }
+  if (element.classList.contains('service')) animateServiceIcon(element, delay + 100);
+  if (element.classList.contains('process-row')) {
+    enter($('.process-number', element), 'scale(.8)', 0, 500);
+    enter($('p', element), 'translateX(14px)', 100, 650);
+  }
+  $$('.bar-fill', element).forEach((bar, i) => playDetailEntrance(bar,
+    gentle ? [{ opacity: 0 }, { opacity: 1 }] : [{ transform: 'scaleX(0)' }, { transform: 'scaleX(1)' }],
+    { duration: gentle ? 150 : 700, delay: gentle ? 0 : delay + i * 55, fill: 'backwards' }));
+}
+function animateServiceIcon(service, delay = 0) {
+  $$('.icon-part', service).forEach((part, i) => playDetailEntrance(part, [
+    { opacity: 0, transform: gentleDetails.matches ? 'none' : 'translateY(5px)' },
+    { opacity: 1, transform: 'none' }
+  ], { duration: gentleDetails.matches ? 150 : 420, delay: gentleDetails.matches ? 0 : delay + i * 65, fill: 'backwards' }));
+}
 function resetSectionAnimations(section) {
   pendingSectionReplays.clear();
+  pendingDetailEntrances.clear();
   pendingHeroReplay = false;
   sectionReplayAnimations.forEach(animation => animation.cancel());
   sectionReplayAnimations.clear();
@@ -129,7 +172,7 @@ function processSectionReplays(headerHeight) {
     if (!inView(element)) continue;
     pendingSectionReplays.delete(element);
     playSectionEntrance(element, [{ opacity: 0, transform: 'translateY(20px)' }, { opacity: 1, transform: 'translateY(0)' }], { duration: 600, delay });
-    $$('.bar-fill', element).forEach((bar, index) => playSectionEntrance(bar, [{ transform: 'scaleX(0)' }, { transform: 'scaleX(1)' }], { duration: 600, delay: delay + index * 40 }));
+    animateRevealDetails(element, delay);
   }
   if (pendingHeroReplay && inView($('#hero-title'))) {
     pendingHeroReplay = false;
@@ -182,6 +225,7 @@ function updateScrollState(syncURL = false) {
   const height = header.getBoundingClientRect().height;
   document.documentElement.style.setProperty('--header-height', height + 'px');
   processSectionReplays(height);
+  processDetailEntrances();
   const distance = Math.max(0, document.documentElement.scrollHeight - innerHeight);
   const progress = distance > 0 ? Math.min(1, Math.max(0, scrollY / distance)) : 0;
   $('.scroll-progress span').style.transform = `scaleX(${progress})`;
@@ -217,7 +261,7 @@ function navigateTo(id) {
   if (location.hash !== '#' + id) {
     try { history.pushState(null, '', '#' + id); } catch (_) { location.hash = '#' + id; }
   }
-  target.scrollIntoView({ behavior: motionEnabled && !reducedMotion() ? 'smooth' : 'instant', block: 'start' });
+  target.scrollIntoView({ behavior: motionEnabled ? 'smooth' : 'instant', block: 'start' });
   const focusTarget = $('h1,h2', target) || target;
   focusTarget.setAttribute('tabindex', '-1');
   focusTarget.focus({ preventScroll: true });
@@ -454,6 +498,7 @@ function openCase(key, updateURL = true, trigger = null) {
     <section class="case-section" id="reader-findings" data-reader-section><h3>The useful finding</h3><p>${escapeHTML(project.finding)}</p></section>
     ${serviceMarkup(key)}
     <p class="case-note">${escapeHTML(project.limitation)}</p>
+    <p class="case-contact-options">Email <a href="mailto:${email}?subject=${encodeURIComponent(project.title + ' inquiry')}">${email}</a> or <a href="${escapeHTML(emailDraftURL(project.title + ' inquiry'))}" target="_blank" rel="noopener noreferrer">open Gmail <span aria-hidden="true">↗</span></a>.</p>
     <div class="case-links">${project.repo ? `<a class="button button-lime" href="${escapeHTML(project.repo)}" target="_blank" rel="noopener noreferrer">Explore the repository <span aria-hidden="true">↗</span></a>` : `<a class="button button-lime" href="${escapeHTML(emailDraftURL('Excel Business Tracker inquiry'))}" target="_blank" rel="noopener noreferrer" title="Open an email draft in Gmail (new tab)">Ask about the workbook <span aria-hidden="true">↗</span></a>`}<button class="button button-outline" id="copy-case">Copy case study link <span aria-hidden="true">↗</span></button></div>`;
   if (!dialog.open) dialog.showModal();
   else animateContent($('#case-content'));
@@ -593,7 +638,7 @@ document.addEventListener('click', event => {
   if (jumpButton && dialog.open) {
     const section = $('#' + jumpButton.dataset.caseJump, dialog);
     if (section) {
-      section.scrollIntoView({ behavior: motionEnabled && !reducedMotion() ? 'smooth' : 'instant', block: 'start' });
+      section.scrollIntoView({ behavior: motionEnabled ? 'smooth' : 'instant', block: 'start' });
       const heading = $('h3', section) || section;
       heading.setAttribute('tabindex', '-1');
       heading.focus({ preventScroll: true });
@@ -755,6 +800,58 @@ updateLabOrientation();
 connectTabs($('.lab-tabs'), 'lab', (key, id) => { renderLab(key, id); animateContent($('#lab-panel')); }, () => !compactLab.matches);
 renderLab('churn', 'lab-tab-churn');
 
+// Tiny pointer depth belongs to the screenshot, never the clickable hit area.
+// Read geometry once per frame; no animation loop runs after the pointer stops.
+(function setupPreviewDepth() {
+  const pointer = matchMedia('(hover: hover) and (pointer: fine)');
+  const transforms = new Set();
+  let pending = 0, latest = null;
+  const clear = () => {
+    cancelAnimationFrame(pending); pending = 0; latest = null;
+    transforms.forEach(img => { img.style.transform = ''; });
+    transforms.clear();
+  };
+  resetPreviewDepth = clear;
+  const permitted = () => motionEnabled && pointer.matches && !gentleDetails.matches && !document.hidden;
+  document.addEventListener('pointermove', event => {
+    if (!permitted() || event.pointerType === 'touch') return;
+    const target = event.target.closest('.dashboard-shot,.priority-image');
+    // Full-size galleries stay flat so the work can be inspected accurately.
+    if (!target || target.closest('dialog')) { if (latest || transforms.size) clear(); return; }
+    latest = { target, x: event.clientX, y: event.clientY };
+    if (pending) return;
+    pending = requestAnimationFrame(() => {
+      pending = 0;
+      if (!latest || !permitted()) { clear(); return; }
+      const { target, x, y } = latest;
+      const img = $('img', target), rect = target.getBoundingClientRect();
+      if (!img || !rect.width || !rect.height) return;
+      transforms.forEach(old => { if (old !== img) { old.style.transform = ''; transforms.delete(old); } });
+      const px = Math.max(-1, Math.min(1, (x - rect.left) / rect.width * 2 - 1));
+      const py = Math.max(-1, Math.min(1, (y - rect.top) / rect.height * 2 - 1));
+      img.style.transform = `perspective(900px) rotateX(${-py * 1.8}deg) rotateY(${px * 1.8}deg) scale(1.025)`;
+      transforms.add(img);
+    });
+  }, { passive: true });
+  document.addEventListener('pointerout', event => {
+    const target = event.target.closest('.dashboard-shot,.priority-image');
+    if (target && event.relatedTarget?.closest?.('.dashboard-shot,.priority-image') !== target) clear();
+  });
+  pointer.addEventListener('change', clear);
+  gentleDetails.addEventListener('change', clear);
+  document.addEventListener('visibilitychange', clear);
+  addEventListener('scroll', clear, { passive: true });
+  addEventListener('blur', clear);
+})();
+$$('.service').forEach(service => {
+  service.addEventListener('pointerenter', event => {
+    if (event.pointerType !== 'touch') animateServiceIcon(service);
+  });
+  service.addEventListener('focusin', event => {
+    if (event.relatedTarget?.closest?.('.service') !== service) animateServiceIcon(service);
+  });
+});
+
 try {
 (function setupSignalField() {
   const canvas = $('#signal-canvas');
@@ -763,7 +860,9 @@ try {
   const field = $('#signal-field');
   const toggle = $('#signal-toggle');
   let width = 0, height = 0, raf = 0, visible = true;
-  let organized = true, blend = 1, tick = 0;
+  // One opening assembly, then the existing quiet signal field. Starting with
+  // the final form when motion is Off avoids a half-assembled static drawing.
+  let organized = true, blend = motionEnabled && !gentleDetails.matches ? 0 : 1, tick = 0;
   let pointerX = 0, pointerY = 0, aimX = 0, aimY = 0;
   let seed = 3016;
   const random = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
@@ -771,7 +870,10 @@ try {
   const rows = 14;
   const points = [];
   for (let r = 0; r < rows; r++) for (let c = 0; c < columns; c++) {
-    points.push({ u: c / (columns - 1), v: r / (rows - 1), rawX: (random() - .5) * 1.7, rawY: (random() - .5) * 1.6, rawZ: random() - .5, size: .65 + random() * .7, phase: random() * Math.PI * 2 });
+    const angle = c / (columns - 1) * Math.PI * 2;
+    const band = (r / (rows - 1) - .5) * 1.8;
+    const radius = .56 + Math.cos(band * 1.8) * .13;
+    points.push({ angle, order: (r / (rows - 1) + c / (columns - 1)) * .5, baseX: Math.cos(angle) * radius, baseZ: Math.sin(angle) * radius, baseY: band * .52, rawX: (random() - .5) * 1.7, rawY: (random() - .5) * 1.6, rawZ: random() - .5, size: .65 + random() * .7, phase: random() * Math.PI * 2 });
   }
   function resize() {
     const rect = field.getBoundingClientRect();
@@ -783,30 +885,28 @@ try {
   }
   function draw() {
     context.clearRect(0, 0, width, height);
+    const yaw = -.32 + Math.sin(tick * .14) * .12 + pointerX * .07;
+    const cosYaw = Math.cos(yaw), sinYaw = Math.sin(yaw);
+    const scale = Math.min(width * .49, height * .59);
     const rendered = points.map(p => {
-      const angle = p.u * Math.PI * 2;
-      const band = (p.v - .5) * 1.8;
-      const radius = .56 + Math.cos(band * 1.8) * .13;
-      let x = Math.cos(angle) * radius;
-      let z = Math.sin(angle) * radius;
-      let y = band * .52 + Math.sin(angle * 2 + tick * .45) * .10;
-      const yaw = -.32 + Math.sin(tick * .14) * .12 + pointerX * .07;
-      const rotatedX = x * Math.cos(yaw) + z * Math.sin(yaw);
-      z = -x * Math.sin(yaw) + z * Math.cos(yaw);
-      x = rotatedX;
+      const x = p.baseX * cosYaw + p.baseZ * sinYaw;
+      const z = -p.baseX * sinYaw + p.baseZ * cosYaw;
+      const y = p.baseY + Math.sin(p.angle * 2 + tick * .45) * .10;
       const surfaceX = x + z * .38;
       const surfaceY = y - z * .34;
-      const px = p.rawX * (1 - blend) + surfaceX * blend;
-      const py = p.rawY * (1 - blend) + surfaceY * blend;
-      const depth = p.rawZ * (1 - blend) + z * blend;
-      const scale = Math.min(width * .49, height * .59);
-      return { x: width * .48 + px * scale + pointerX * depth * 7, y: height * .49 + py * scale + pointerY * depth * 7, depth, size: p.size * (1 + depth * .25), opacity: .40 + (depth + .7) * .34 };
+      const progress = Math.max(0, Math.min(1, (blend - p.order * .18) / .82));
+      const formation = progress * progress * (3 - 2 * progress);
+      const px = p.rawX * (1 - formation) + surfaceX * formation;
+      const py = p.rawY * (1 - formation) + surfaceY * formation;
+      const depth = p.rawZ * (1 - formation) + z * formation;
+      const assemblyLight = 4 * progress * (1 - progress);
+      return { x: width * .48 + px * scale + pointerX * depth * 7, y: height * .49 + py * scale + pointerY * depth * 7, depth, formation, size: p.size * (1 + depth * .25 + assemblyLight * .35), opacity: .40 + (depth + .7) * .34 + assemblyLight * .16 };
     });
     context.lineWidth = .5;
     if (blend > .15) for (let r = 0; r < rows; r++) for (let c = 0; c < columns; c++) {
       const index = r * columns + c;
       const p = rendered[index];
-      context.strokeStyle = `rgba(162,191,104,${(.04 + (p.depth + .7) * .07) * blend})`;
+      context.strokeStyle = `rgba(162,191,104,${(.04 + (p.depth + .7) * .07) * p.formation})`;
       for (const next of [c < columns - 1 ? index + 1 : -1, r < rows - 1 ? index + columns : -1]) if (next >= 0) {
         context.beginPath();context.moveTo(p.x, p.y);context.lineTo(rendered[next].x, rendered[next].y);context.stroke();
       }
@@ -820,22 +920,24 @@ try {
     const cx = width * .48, cy = height * .49;
     context.beginPath();context.moveTo(cx - 10, cy);context.lineTo(cx + 10, cy);context.moveTo(cx, cy - 10);context.lineTo(cx, cy + 10);context.stroke();
   }
-  let lastTime = 0, lastDraw = 0;
+  let lastTime = 0;
   function animate(time) {
     raf = 0;
-    if (!motionEnabled || reducedMotion() || !visible || document.hidden) return;
+    if (!motionEnabled || !visible || document.hidden) return;
     const dt = Math.min((time - (lastTime || time)) / 1000, .05); lastTime = time;
     tick += dt;
     const smoothing = 1 - Math.exp(-dt * 3.3);
-    blend += ((organized ? 1 : 0) - blend) * smoothing;
+    blend += ((organized ? 1 : 0) - blend) * (1 - Math.exp(-dt * 2.6));
     pointerX += (aimX - pointerX) * smoothing;
     pointerY += (aimY - pointerY) * smoothing;
-    if (time - lastDraw >= 1000 / 45) { draw(); lastDraw = time; }
+    // Draw on every browser frame. A 45 fps threshold drops alternate frames
+    // on common 60 Hz displays, producing a visibly uneven cadence.
+    draw();
     raf = requestAnimationFrame(animate);
   }
   renderField = () => {
     cancelAnimationFrame(raf);raf = 0;lastTime = 0;
-    if (!motionEnabled || reducedMotion()) { blend = organized ? 1 : 0; pointerX = pointerY = 0; draw(); }
+    if (!motionEnabled) { blend = organized ? 1 : 0; pointerX = pointerY = 0; draw(); }
     else if (visible && !document.hidden) raf = requestAnimationFrame(animate);
   };
   field.addEventListener('pointermove', event => {
@@ -872,7 +974,9 @@ function setupReveals() {
   try {
     const observer = new IntersectionObserver(entries => {
       for (const entry of entries) if (entry.isIntersecting) {
+        const first = !entry.target.classList.contains('visible');
         entry.target.classList.add('visible');
+        if (first) animateRevealDetails(entry.target);
         observer.unobserve(entry.target);
       }
     }, { threshold: .04, rootMargin: '0px 0px -20px 0px' });

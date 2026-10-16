@@ -1,3 +1,9 @@
+## V7 requested motion refinement
+
+Full motion now starts On by default, independently of the operating system preference, as explicitly requested by the portfolio owner. The header switch still offers Off and remembers that choice. The illustration redraws on every browser frame, with invariant geometry precalculated; this removes the former 45 fps threshold that skipped alternate frames on 60 Hz screens. CSS and JavaScript use the same slightly softer easing curve. The layout, visual identity, content and contact actions are preserved.
+
+---
+
 ## V6 interaction follow-up
 
 The review below records v4 decisions. V6 corrects the motion-control conflict: a saved or newly selected On choice now enables full animation; without a manual preference the system's reduced-motion setting remains the default and is visibly labelled Reduced. Off remains available. The same policy governs CSS, JavaScript transitions, scrolling and the canvas. More visible hero/reveal timing and the earlier scroll cue/status motion were restored at the user's request.
@@ -112,3 +118,40 @@ The site retains the chosen dark appearance. Increased contrast, forced colors, 
 **Project follow-up:** The supplied sales image has a monthly axis whose displayed dates are not in chronological order, and the Excel image includes application chrome and a partially captured lower dashboard. Those are source-project presentation issues. V4 preserves the authentic assets; improved exports and a shareable Excel workbook would make the underlying examples stronger.
 
 Reference pages opened for this review: `accessibility.md`, `layout.md`, `typography.md`, `color.md`, `designing-for-ios.md`, `motion.md`, `buttons.md`, `modality.md`, `writing.md`, `branding.md`, and `cross-platform.md` from the Apple Design skill.
+
+## V8 motion review — 16 October 2026
+
+**Summary: Good, based on source and controlled interaction checks.** This responsive web portfolio helps a prospective buyer move from a business problem to real project evidence and an email enquiry. Its signature is an illustration of scattered data forming a coherent signal. The changes develop that metaphor and highlight actual work; improved visitor retention remains an untested hypothesis.
+
+### Research and decisions
+
+| Source | Principle used | Implementation choice |
+| --- | --- | --- |
+| [Apple HIG: Motion](https://developer.apple.com/design/human-interface-guidelines/motion), Best practices / Providing feedback | Purposeful, optional motion; brief feedback that can be interrupted | One hero assembly; shared Motion switch; no loading gates or forced scrolling |
+| [Nielsen Norman Group: The Role of Animation and Motion in UX](https://www.nngroup.com/articles/animation-purpose-ux/) | Motion attracts attention and can also distract; use it to explain transitions and interactions | Reveal the report evidence, provide service-icon and button feedback, then settle |
+| [web.dev: High-performance CSS animations](https://web.dev/articles/animations-guide) | Prefer transform and opacity; avoid layout-triggering animation and unnecessary layer promotion | Native Web Animations and CSS transforms/opacity, batched pointer updates, no permanent will-change layers |
+
+These sources support the design principles, not a predicted increase in leads or session duration. To assess that business effect, compare case-study opens and contact attempts with the previous version under similar traffic conditions; a longer session alone can also reflect confusion. No tracking was added.
+
+### Implemented improvements
+
+- **[Medium] Make the signature understandable on arrival.** Points assemble in a staggered wave into the existing signal form, then resume the previous gentle motion. The same Scatter / Organize control reverses it. The still state is complete when motion is disabled. This expresses the actual service theme without inventing business results.
+- **[Medium] Let project previews enter when people can see them.** A separate visibility check holds a below-fold preview until it arrives, which matters when the featured project stacks on a phone. Entrances run once during ordinary scrolling; explicit section navigation can still replay them.
+- **[Low] Make interactive objects feel responsive.** Preview images receive bounded pointer depth on devices with a fine pointer. Their buttons remain fixed. Pointer work ends after an event; it does not start another continuous animation loop. Full-size readers, touch devices and system reduced-motion preferences exclude this depth effect.
+- **[Low] Connect smaller moments to the content.** The reporting path, workbook grid and dashboard bars animate as service symbols. Process numbers and rules reveal in sequence. Headings and arrows share the existing easing. Values in the analysis remain visible as their final, documented numbers.
+
+### What remains unchanged
+
+The six projects, 18 screenshots, pricing/contact context, Gmail and ordinary email paths, keyboard tabs, modal focus handling and local-file fallbacks are retained. The existing color/type tokens and compact/regular reading order described above still apply; no new palette or typeface was introduced. Apple principles are translated to the web, not native Apple navigation conventions.
+
+### Craft and accessibility trade-off
+
+`motion.md > Best practices` calls for purposeful and optional motion; `branding.md > Best practices` keeps the brand subordinate to content. The signal field earns its movement because it demonstrates the offer. The availability pulse was removed and the scroll cue stops after two cycles, leaving a quieter background for reading.
+
+The requested default-On behavior is preserved. A saved Off choice cancels active and waiting animations. New detail animations use short fades for a system reduced-motion preference, while the existing hero/navigation behavior continues to follow the explicit site On/Off policy. Consequently this release does not claim comprehensive WCAG or reduced-motion conformance. `accessibility.md > Cognitive` is the basis for reducing these new spatial effects.
+
+### Verification limits
+
+The modular site and portable HTML each pass 18 controlled DOM scenarios. The added scenarios verify independent preview arrival, cancellation of pending reveals, reduced-motion detail fades, bounded pointer updates and cleanup, touch exclusions, flat full-size readers, keyboard icon feedback, optional-animation failure handling, and a complete static canvas after switching Off. Existing contact, navigation, filtering and gallery scenarios also pass. Static checks and ZIP byte comparison cover the exports.
+
+No supported local browser preview was available for this run. These are source and behavior checks, not observed animation playback, physical-phone testing, screen-reader testing, a frame-rate measurement or a measured retention experiment.
