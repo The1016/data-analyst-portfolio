@@ -311,6 +311,48 @@ $('#copy-email').addEventListener('click', () => copyText(email, 'Email address 
 const escapeHTML = value => String(value).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
 
 const projectData = {
+  reconciliation: {
+    number: '07', type: 'Payment reconciliation', label: 'Synthetic demonstration', title: 'Payment Reconciliation and Exception Reporting',
+    description: 'Two payment files, one traceable comparison: exact matches, amount differences, and records that need a person to review them.',
+    metrics: [['101', 'Source records across two files'], ['43', 'Exact matched pairs'], ['12', 'Exception report rows requiring review']],
+    snapshotNote: 'Synthetic baseline · 50 records in A and 51 in B. The 55 report rows represent all 101 source records; the 12 exception report rows represent 15 source records. A paired row contains one record from each source.',
+    problem: 'Two teams can report payments in different orders, with missing records, duplicate references, or conflicting amounts. Comparing grand totals alone does not tell a reviewer which records need attention.',
+    steps: [
+      'Keep the two original CSV files unchanged. Work at one transaction per source row, for one sample period in BDT; neither file is assumed to be the authoritative ledger.',
+      'Trim outer spaces in the transaction reference while retaining original values and leading zeros. Hold blank references and any reference repeated in either source for review.',
+      'Pair only references that are unique on both sides. Compare amounts as exact integer paisa with zero tolerance; define every difference as A minus B.',
+      'Separate matched pairs, amount differences, one-sided records, ambiguous references, and missing references. Retain source-row locations for investigation.',
+      'Check source-row and amount conservation, then export comparison tables, exceptions, controls, and a gap explanation as CSV and HTML. Present the verified baseline in an Excel workbook.'
+    ],
+    outcomes: [
+      'A transaction-level comparison and a focused exception report with original source-row locations.',
+      'Cleaned copies that retain original identifiers and amounts, plus checks accounting for every source record exactly once on its own side.',
+      'A gap explanation connecting the exception categories to the overall A-minus-B difference.',
+      'A documented notebook and optional Python script, a browser-readable sample report, and a formatted Excel reference workbook.'
+    ],
+    finding: 'Source A totals Tk62,750.00 and source B totals Tk64,320.01, giving an A-minus-B difference of −Tk1,570.01. The report separates the records behind that gap so a reviewer can investigate them. Both original totals are conserved, with zero unaccounted records or amounts.',
+    resultRows: [
+      ['Matched', '43', 'Pairs'], ['Amount difference', '3', 'Pairs'],
+      ['Only in A', '3', 'Source records'], ['Only in B', '2', 'Source records'],
+      ['Ambiguous reference', '3', 'Source records'], ['Missing reference', '1', 'Source record']
+    ],
+    validation: [
+      'Compared the baseline with independently specified expected results and verified that every original source row appears exactly once on its own side, with its original amount.',
+      'Manually checked references 000010, 000020, and 000030: their A-minus-B differences are −Tk100.00, +Tk50.00, and −Tk0.01.',
+      'Held reference 000048 for review because it appears once in A and twice in B. The blank-reference B row remains unpaired, even though an A-only row has the same amount.',
+      'Checked changed-input behavior: increasing one B amount by Tk1 creates another amount difference. Invalid amounts stop the run rather than becoming zero.'
+    ],
+    limitation: 'All data and bank names are invented. This is a portfolio demonstration, not a bank client engagement. No measured time-saving or financial impact is claimed. The example excludes fuzzy matching, automatic financial adjustments, and production system integration.',
+    tools: ['Python', 'pandas', 'Excel', 'Reconciliation', 'Data quality'],
+    downloadNote: 'The notebook or script regenerates CSV and HTML reports. The Excel workbook and screenshots show the supplied baseline and do not refresh automatically. Download the complete example to run the code with its input files and expected results.',
+    downloads: [
+      { path: 'assets/reconciliation/report.html', label: 'Open sample report', filename: 'reconciliation-sample-report.html', preview: true, detail: 'HTML · full results, exceptions, controls, and gap explanation' },
+      { path: 'assets/reconciliation/Reconciliation_Example.xlsx', label: 'Download sample workbook', filename: 'Reconciliation_Example.xlsx', detail: 'Excel · formatted reference for the synthetic baseline' },
+      { path: 'assets/reconciliation/01_Reconciliation_Walkthrough.ipynb', label: 'Download notebook', filename: '01_Reconciliation_Walkthrough.ipynb', detail: 'Jupyter · code, method, and executed baseline outputs' },
+      { path: 'assets/reconciliation/Payment_Reconciliation_Example.zip', label: 'Download complete example', filename: 'Payment_Reconciliation_Example.zip', detail: 'ZIP · input CSVs, notebook, script, reports, and screenshots' }
+    ],
+    repo: null
+  },
   sales: {
     number: '01', type: 'Reporting automation', title: 'Automated Sales Reporting System',
     description: 'A repeatable workflow that turns monthly sales CSV files into clean reporting data and a four-page Power BI dashboard.',
@@ -386,6 +428,10 @@ const projectData = {
 };
 
 const galleries = {
+  reconciliation: [
+    ['reconciliation-exceptions.png', 'Exceptions requiring review', 'Synthetic baseline: 12 exception report rows representing 15 source records. Blank cells mean absent, not zero; differences are A minus B in BDT.', 2037, 960],
+    ['reconciliation-summary.png', 'Summary and source controls', 'Synthetic baseline: category counts, source totals, the −Tk1,570.01 gap, matching rules, and checks accounting for all 101 source records.', 1334, 2048]
+  ],
   sales: [
     ['sales-overview.png', 'Executive Sales Overview', 'Sales, profit, orders, and regional performance in one view.'],
     ['sales-products.png', 'Product & Margin Analysis', 'Category margins, product profitability, and discount impact.'],
@@ -414,6 +460,7 @@ const galleries = {
   ]
 };
 const serviceOffers = {
+  reconciliation: ['A clearer payment comparison', 'A scoped project could compare two payment exports using agreed reference and amount rules, separate exceptions for review, and hand over the results with source totals and documented checks.', 'Payment reconciliation project'],
   sales: ['A recurring reporting workflow', 'A scoped adaptation could combine your monthly files, define your KPIs, create a focused report, and document the preparation and refresh process.', 'Monthly sales reporting project'],
   excel: ['A workbook for your business', 'A scoped adaptation could organize your orders, stock, expenses, and customers into a workbook with formulas and an operational dashboard.', 'Custom Excel business tracker'],
   retail: ['A dashboard for business decisions', 'A scoped adaptation could clean your sales data, define meaningful metrics, and investigate product margins, discounts, and customer profitability.', 'Profitability dashboard project']
@@ -457,8 +504,8 @@ addEventListener('resize', requestReaderUpdate);
 
 function lockBody() { document.body.classList.toggle('modal-open', dialog.open || imageDialog.open); }
 function screenshotMarkup(key, index = 0) {
-  const [file, title] = galleries[key][index];
-  return `<button class="dashboard-shot" data-image="${key}" data-image-index="${index}" aria-label="Enlarge ${escapeHTML(title)}"><img src="${assetURL('assets/projects/' + file)}" alt="${escapeHTML(title)} — actual ${escapeHTML(projectData[key].title)} screenshot" width="1440" height="810" decoding="async"><span class="image-expand">View full size <i aria-hidden="true">↗</i></span></button>`;
+  const [file, title, , width = 1440, height = 810] = galleries[key][index];
+  return `<button class="dashboard-shot${height > width ? ' portrait-shot' : ''}" data-image="${key}" data-image-index="${index}" aria-label="Enlarge ${escapeHTML(title)}"><img src="${assetURL('assets/projects/' + file)}" alt="${escapeHTML(title)} — ${escapeHTML(projectData[key].label || 'actual project')} screenshot" width="${width}" height="${height}" decoding="async"><span class="image-expand">View full size <i aria-hidden="true">↗</i></span></button>`;
 }
 function galleryMarkup(key) {
   const shots = galleries[key];
@@ -470,6 +517,15 @@ function serviceMarkup(key) {
   if (!offer) return '';
   return `<section class="case-service"><h3>${escapeHTML(offer[0])}</h3><p>${escapeHTML(offer[1])}</p><a class="text-link" href="${escapeHTML(emailDraftURL(offer[2]))}" target="_blank" rel="noopener noreferrer" title="Open an email draft in Gmail (new tab)">Discuss a similar project <span aria-hidden="true">↗</span></a></section>`;
 }
+function downloadsMarkup(project) {
+  if (!project.downloads) return '';
+  return `<section class="case-section" id="reader-downloads" data-reader-section><h3>Inspect the work</h3><p>${escapeHTML(project.downloadNote)}</p><div class="case-downloads">${project.downloads.map(file => {
+    const url = assetURL(file.path);
+    const download = !file.preview || url.startsWith('data:');
+    const label = file.preview && download ? 'Download sample report' : file.label;
+    return `<div class="case-download"><a class="text-link" href="${escapeHTML(url)}" ${download ? `download="${escapeHTML(file.filename)}"` : 'target="_blank" rel="noopener noreferrer"'}>${escapeHTML(label)} <span aria-hidden="true">${download ? '↓' : '↗'}</span></a><p>${escapeHTML(file.detail)}</p></div>`;
+  }).join('')}</div></section>`;
+}
 function openCase(key, updateURL = true, trigger = null) {
   const project = projectData[key];
   if (!project) return;
@@ -480,9 +536,9 @@ function openCase(key, updateURL = true, trigger = null) {
   activeProject = key;
   closeMenu();
   $('#reader-project').textContent = project.title;
-  const readerSections = [['reader-summary', 'At a glance'], ...(galleries[key] ? [['reader-screens', 'Screenshots']] : []), ['reader-built', 'What I built'], ['reader-method', 'Process'], ['reader-findings', 'Findings']];
+  const readerSections = [['reader-summary', 'At a glance'], ...(galleries[key] ? [['reader-screens', 'Screenshots']] : []), ['reader-built', 'What I built'], ['reader-method', 'Process'], ['reader-findings', 'Findings'], ...(project.validation ? [['reader-validation', 'Validation']] : []), ...(project.downloads ? [['reader-downloads', 'Downloads']] : [])];
   $('#case-content').innerHTML = `
-    <p class="eyebrow case-kicker">${escapeHTML(project.type)} · Portfolio project</p>
+    <p class="eyebrow case-kicker">${escapeHTML(project.type)} · ${escapeHTML(project.label || 'Portfolio project')}</p>
     <h2 class="case-title" id="case-title">${escapeHTML(project.title)}</h2>
     <p class="case-subtitle">${escapeHTML(project.description)}</p>
     <div class="tags">${project.tools.map(tool => `<span>${escapeHTML(tool)}</span>`).join('')}</div>
@@ -490,16 +546,19 @@ function openCase(key, updateURL = true, trigger = null) {
     <div id="reader-summary" data-reader-section>
       <div class="case-metrics">${project.metrics.map(([value, label]) => `<div class="case-metric"><strong>${escapeHTML(value)}</strong><span>${escapeHTML(label)}</span></div>`).join('')}</div>
       ${key === 'sales' ? '<p class="snapshot-note">The pictured snapshot shows 2.46M revenue, 303.36K profit, and 12.31% margin. The original README documents an earlier period (2.30M revenue and 12.47% margin). These are portfolio dataset figures.</p>' : ''}
+      ${project.snapshotNote ? `<p class="snapshot-note">${escapeHTML(project.snapshotNote)}</p>` : ''}
       <section class="case-section"><h3>The question</h3><p>${escapeHTML(project.problem)}</p></section>
     </div>
     ${galleryMarkup(key)}
     <section class="case-section" id="reader-built" data-reader-section><h3>What I built</h3><ul>${project.outcomes.map(text => `<li>${escapeHTML(text)}</li>`).join('')}</ul></section>
     <section class="case-section" id="reader-method" data-reader-section><h3>How I approached it</h3><ol>${project.steps.map(text => `<li>${escapeHTML(text)}</li>`).join('')}</ol></section>
-    <section class="case-section" id="reader-findings" data-reader-section><h3>The useful finding</h3><p>${escapeHTML(project.finding)}</p></section>
+    <section class="case-section" id="reader-findings" data-reader-section><h3>${project.resultRows ? 'What the comparison found' : 'The useful finding'}</h3><p>${escapeHTML(project.finding)}</p>${project.resultRows ? `<table class="case-results"><caption>Synthetic baseline · 55 report rows, representing 101 source records</caption><thead><tr><th scope="col">Result category</th><th scope="col">Report rows</th><th scope="col">Unit</th></tr></thead><tbody>${project.resultRows.map(row => `<tr><th scope="row">${escapeHTML(row[0])}</th><td>${escapeHTML(row[1])}</td><td>${escapeHTML(row[2])}</td></tr>`).join('')}</tbody></table>` : ''}</section>
+    ${project.validation ? `<section class="case-section" id="reader-validation" data-reader-section><h3>How I checked it</h3><ul>${project.validation.map(text => `<li>${escapeHTML(text)}</li>`).join('')}</ul></section>` : ''}
+    ${downloadsMarkup(project)}
     ${serviceMarkup(key)}
     <p class="case-note">${escapeHTML(project.limitation)}</p>
     <p class="case-contact-options">Email <a href="mailto:${email}?subject=${encodeURIComponent(project.title + ' inquiry')}">${email}</a> or <a href="${escapeHTML(emailDraftURL(project.title + ' inquiry'))}" target="_blank" rel="noopener noreferrer">open Gmail <span aria-hidden="true">↗</span></a>.</p>
-    <div class="case-links">${project.repo ? `<a class="button button-lime" href="${escapeHTML(project.repo)}" target="_blank" rel="noopener noreferrer">Explore the repository <span aria-hidden="true">↗</span></a>` : `<a class="button button-lime" href="${escapeHTML(emailDraftURL('Excel Business Tracker inquiry'))}" target="_blank" rel="noopener noreferrer" title="Open an email draft in Gmail (new tab)">Ask about the workbook <span aria-hidden="true">↗</span></a>`}<button class="button button-outline" id="copy-case">Copy case study link <span aria-hidden="true">↗</span></button></div>`;
+    <div class="case-links">${project.repo ? `<a class="button button-lime" href="${escapeHTML(project.repo)}" target="_blank" rel="noopener noreferrer">Explore the repository <span aria-hidden="true">↗</span></a>` : `<a class="button button-lime" href="${escapeHTML(emailDraftURL(project.title + ' inquiry'))}" target="_blank" rel="noopener noreferrer" title="Open an email draft in Gmail (new tab)">${project.downloads ? 'Discuss this kind of project' : 'Ask about the workbook'} <span aria-hidden="true">↗</span></a>`}<button class="button button-outline" id="copy-case">Copy case study link <span aria-hidden="true">↗</span></button></div>`;
   if (!dialog.open) dialog.showModal();
   else animateContent($('#case-content'));
   lockBody();
@@ -697,11 +756,11 @@ $$('[data-filter]').forEach(button => button.addEventListener('click', () => {
     item.hidden = filter !== 'all' && !item.dataset.categories.split(' ').includes(filter);
     if (!item.hidden) { count++; item.classList.add('visible'); }
   });
-  for (const id of ['service-projects', 'supporting-projects']) {
+  for (const id of ['service-projects', 'practical-projects', 'supporting-projects']) {
     const group = $('#' + id);
     group.hidden = !$$('.project-item', group).some(item => !item.hidden);
   }
-  $('#project-count').textContent = filter === 'all' ? '06 projects · 02 featured systems' : `${String(count).padStart(2, '0')} ${count === 1 ? 'project' : 'projects'} · ${button.textContent.trim()}`;
+  $('#project-count').textContent = filter === 'all' ? '07 projects · 03 featured projects' : `${String(count).padStart(2, '0')} ${count === 1 ? 'project' : 'projects'} · ${button.textContent.trim()}`;
   if (motionEnabled) projectItems.filter(item => !item.hidden).forEach((item, index) => {
     const old = oldRects.get(item), rect = item.getBoundingClientRect();
     const transform = old ? `translate(${old.left - rect.left}px,${old.top - rect.top}px)` : 'translateY(18px)';

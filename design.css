@@ -1,4 +1,4 @@
-/* Portfolio v8. A single stylesheet; local fonts and assets also work offline. */
+/* Portfolio v9. A single stylesheet; local fonts and assets also work offline. */
 @font-face{font-family:Signal Sans;src:url('assets/signal-sans.woff') format('woff');font-weight:400;font-display:swap}
 @font-face{font-family:Signal Sans;src:url('assets/signal-sans-bold.woff') format('woff');font-weight:600 900;font-display:swap}
 @font-face{font-family:Signal Mono;src:url('assets/signal-mono.woff') format('woff');font-weight:400;font-display:swap}
@@ -164,6 +164,14 @@ h2{font-size:clamp(2.4rem,4.2vw,3.8rem);font-weight:400;line-height:1.08;letter-
 .image-expand i{font-style:normal;color:var(--lime)}
 .report-caption{font-size:.875rem;line-height:1.6;color:var(--muted);margin-top:16px;min-height:44px}
 .report-foot{display:flex;justify-content:space-between;gap:12px;border-top:1px solid var(--line);padding-top:16px;margin-top:16px;color:var(--muted);font-size:.75rem}
+.reconciliation-totals{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;padding-block:18px;border-top:1px solid var(--line)}
+.reconciliation-totals span{display:block;color:var(--muted);font-size:.8125rem;line-height:1.5}
+.reconciliation-totals strong{display:block;margin-top:8px;font-size:clamp(1.05rem,1.6vw,1.35rem);font-weight:400;letter-spacing:-.025em}
+.reconciliation-gap{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:24px;padding:14px 0;border-block:1px solid var(--line);font-size:.875rem;color:var(--muted)}
+.reconciliation-gap strong{font-weight:400;color:var(--lime);font-size:1.125rem}
+.reconciliation-preview .dashboard-shot{aspect-ratio:2037/960}
+.reconciliation-preview-links{display:flex;justify-content:space-between;gap:8px 20px;flex-wrap:wrap;margin-top:12px}
+.dashboard-shot.portrait-shot{aspect-ratio:1334/2048;max-width:34rem;margin-inline:auto}
 .project-tier{margin-top:16px}
 .tier-heading{display:flex;justify-content:space-between;align-items:center;gap:20px;margin-bottom:24px}
 .tier-heading>span{font-size:.875rem;color:var(--muted)}
@@ -179,6 +187,9 @@ h2{font-size:clamp(2.4rem,4.2vw,3.8rem);font-weight:400;line-height:1.08;letter-
 .priority-copy h3,.supporting-project h3{font-size:clamp(1.7rem,2.2vw,2.15rem);font-weight:400;line-height:1.15;letter-spacing:-.03em;margin-top:22px}
 .priority-copy>p,.supporting-project>p{font-size:1rem;line-height:1.7;color:var(--muted);margin-top:16px}
 .priority-actions{display:flex;flex-direction:column;align-items:flex-start;gap:2px;margin-top:20px}
+.prominent-project{display:grid;grid-template-columns:1.15fr 1fr;align-items:center}
+.prominent-project .priority-image{height:100%;border-bottom:0;border-right:1px solid var(--line)}
+@media(max-width:900px){.prominent-project{grid-template-columns:1fr}.prominent-project .priority-image{height:auto;border-right:0;border-bottom:1px solid var(--line)}}
 .radar-feature{display:grid;grid-template-columns:1.1fr 1fr;gap:36px;align-items:center;border:1px solid var(--line);border-radius:10px;background:#171b13;padding:32px;margin-top:16px}
 .radar-feature-copy h3{font-size:2.2rem;font-weight:400;letter-spacing:-.035em;line-height:1.1;margin-top:22px}
 .radar-feature .project-full-name{margin-top:10px}
@@ -197,7 +208,7 @@ h2{font-size:clamp(2.4rem,4.2vw,3.8rem);font-weight:400;line-height:1.08;letter-
 
 /* Buyers can see the output, the example, and what is needed to start. */
 .services-section{padding-block:64px 80px}
-.service-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}
+.service-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px}
 .service{position:relative;display:flex;flex-direction:column;align-items:flex-start;border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:28px;min-width:0}
 .service-symbol{display:flex;align-items:center;justify-content:center;width:44px;height:44px;border:1px solid var(--control);border-radius:8px;color:var(--lime);font-size:1.5rem;margin-bottom:24px}
 .service-symbol svg{width:24px;height:24px;overflow:visible}
@@ -331,6 +342,18 @@ h2{font-size:clamp(2.4rem,4.2vw,3.8rem);font-weight:400;line-height:1.08;letter-
 .case-section p,.case-section li{font-size:1.0625rem;line-height:1.8;color:var(--muted);max-width:47rem}
 .case-section ul,.case-section ol{padding-left:24px;margin:0}
 .case-section li+li{margin-top:12px}
+.case-results{width:100%;border-collapse:collapse;margin-top:24px;font-size:.9375rem;line-height:1.6;text-align:left}
+.case-results caption{text-align:left;color:var(--muted);font-size:.8125rem;margin-bottom:12px}
+.case-results th,.case-results td{padding:12px;border-bottom:1px solid var(--line);vertical-align:top}
+.case-results thead{background:var(--panel);color:var(--ink)}
+.case-results tbody{color:var(--muted)}
+.case-results th{font-weight:400}
+.case-results tbody th{color:var(--ink)}
+.case-results td:nth-child(2){font-family:Signal Mono,monospace}
+.case-downloads{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:20px}
+.case-download{padding:18px 20px;border:1px solid var(--line);border-radius:7px;background:var(--panel);min-width:0}
+.case-download .text-link{font-size:.9375rem;line-height:1.6;overflow-wrap:anywhere}
+.case-download p{font-size:.8125rem;line-height:1.7;margin-top:4px}
 .case-gallery{margin-top:36px;scroll-margin-top:16px}
 .case-gallery-top{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-bottom:18px}
 .case-gallery-top h3{font-size:1.5rem;font-weight:400}
@@ -445,6 +468,7 @@ html.motion-off{scroll-behavior:auto}
   .dialog-toolbar .close-dialog{font-size:.8125rem;gap:10px;padding:9px 10px}#case-content{padding:28px 20px 48px}
   .case-title{font-size:2.35rem}.case-subtitle{font-size:1.0625rem}.case-index{gap:8px;position:static;margin-top:20px}
   .case-metrics{grid-template-columns:1fr;gap:10px}.case-metric{padding:16px 18px}
+  .case-downloads{grid-template-columns:1fr}.case-results{font-size:.8125rem}.case-results th,.case-results td{padding:10px 6px}
   .case-metric strong{font-size:1.7rem}.case-metric>span{margin-top:6px;font-size:.875rem}
   .case-section p,.case-section li{font-size:1rem}.case-gallery-top{align-items:flex-start;flex-direction:column;gap:6px}
   .case-gallery-top h3{font-size:1.4rem}.case-service{padding:22px 18px}.case-note{padding-left:16px}.case-links>.button{width:100%}

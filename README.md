@@ -1,13 +1,27 @@
-# MD Zawwadul Islam — Analytics Portfolio, v8
+# MD Zawwadul Islam — Analytics Portfolio, v9
 
-A buildless portfolio with local fonts, 18 actual screenshots, and native HTML, CSS, and JavaScript. No installation, build step, remote scripts, or hosted font service is required.
+A buildless portfolio with local fonts, 20 actual screenshots, and native HTML, CSS, and JavaScript. No installation, build step, remote scripts, or hosted font service is required.
+
+## Reconciliation project in v9
+
+Payment Reconciliation and Exception Reporting now leads Selected Work. The new Finance & operations service links to the same case study. The hero description, project counts, and About copy include this work; the existing design and motion behavior are retained. Services use two columns on desktop and one on small screens.
+
+The example is explicitly synthetic. Its case study documents 101 source records, 43 exact matched pairs, 12 exception report rows (representing 15 source records), the −Tk1,570.01 A-minus-B gap, reference rules, and source controls. It includes a result-category table and a validation section. No bank client engagement or measured business improvement is claimed.
+
+Two supplied screenshots are integrated into the existing gallery and full-size reader. The portrait summary keeps its natural proportions. The case study provides the HTML sample report, baseline Excel workbook, executed notebook, and complete runnable ZIP under `assets/reconciliation/`. The notebook and script regenerate CSV and HTML; the formatted Excel reference and screenshots do not refresh automatically. This boundary is visible next to the downloads.
+
+The complete ZIP download contains the usual hosting files and `zawwadul-portfolio.html`. The standalone page embeds the screenshots and evidence downloads as well as fonts, styles, and scripts. From the standalone page the HTML sample report downloads as an HTML file; the hosted version opens it in a new tab.
+
+The existing workspace Site remains separate from the public Vercel deployment. Publish the v9 hosting files to the existing Vercel project to update that address. The workspace Site keeps its current access settings.
+
+**V9 verification:** 19 controlled interaction scenarios passed for both the modular website and standalone HTML. Coverage includes all seven projects, the reconciliation filter and deep link, both screenshots, modal focus and scroll restoration, evidence downloads, contact actions, and the existing motion behavior. Static checks verified HTML IDs and anchors, all local assets, the workbook and notebook files, and byte-for-byte embedded evidence. Export packaging verifies ZIP integrity and file parity. Browser/device visual testing was unavailable; mobile layout and visual smoothness have not been browser-verified in this update.
 
 ## Animation update in v8
 
 - The hero illustration assembles scattered points into the existing signal structure on arrival. Its Scatter / Organize control remains available throughout; there is no loading screen or timed content gate.
 - Report previews have a short depth reveal. When a project stacks on a phone, its preview waits until the preview itself reaches the viewport. Supporting project facts keep their real values and enter in a short sequence.
 - Desktop screenshot previews respond to the pointer by at most 1.8 degrees. The hit area stays still, touch devices skip the effect, and full-size screenshots remain flat for inspection. Pointer updates are batched into the next animation frame and reset on exit, scrolling, window blur, hidden tabs, or Motion Off.
-- The three service icons build in small steps; keyboard focus also triggers their feedback. Headings, process numbers, dividers and link arrows receive coordinated, brief motion.
+- The service icons build in small steps; keyboard focus also triggers their feedback. Headings, process numbers, dividers and link arrows receive coordinated, brief motion.
 - The existing insight bars now replay on first arrival as well as on tab changes. The availability dot is still, and the small scroll cue ends after two cycles, keeping the signal illustration as the main moving element.
 
 **Motion stays On by default**, and saved Off choices remain respected. Switching Off cancels active and queued detail animations and leaves every element readable. New decorative depth and icon effects become short fades when the system requests reduced motion. The existing main On/Off behavior from v7 remains independent of the system preference, as requested; this is not a claim of full reduced-motion accessibility compliance.
@@ -32,7 +46,7 @@ The design, project content, contact improvements and **zawwadul@gmail.com** are
 
 ## Easiest way to open the download
 
-Open **zawwadul-portfolio.html** in Chrome. This is a complete standalone page with the current CSS, JavaScript, fonts and all 18 project screenshots embedded. It works without a server or internet connection for local interactions. Email, LinkedIn, GitHub and other external destinations still need internet access. No companion files are required, and it can be moved or renamed.
+Open **zawwadul-portfolio.html** in Chrome. This is a complete standalone page with the current CSS, JavaScript, fonts and all 20 project screenshots embedded. It works without a server or internet connection for local interactions. Email, LinkedIn, GitHub and other external destinations still need internet access. No companion files are required, and it can be moved or renamed.
 
 For editing or hosting, the ZIP also contains the usual `index.html`, `design.css`, `app.js` and `assets/` files. Keep those together, or use the standalone page.
 
@@ -61,7 +75,8 @@ If port 5500 is occupied, use 5501 in the command and browser address.
 
 ## Project hierarchy
 
-- **Automated Sales Reporting:** lead service foundation, with a four-tab preview of the actual report.
+- **Payment Reconciliation:** leading synthetic example, with exception and control screenshots, a documented case study, and downloadable evidence.
+- **Automated Sales Reporting:** reporting service foundation, with a four-tab preview of the actual report.
 - **Excel Tracker and Retail Profitability:** prominent service examples, immediately after the lead reporting system.
 - **DataRole Radar:** the technical showcase of API ingestion, classification, audits, SQL, tests, and explainable recommendations.
 - **E-commerce and Churn:** concise supporting analytical projects.
@@ -75,7 +90,7 @@ The Apple Design review and implemented changes are documented in `DESIGN-REVIEW
 - Native smooth scrolling, staggered reveals, animated project rearrangements, tab transitions, and modal entry/exit.
 - Navigation clicks replay a section's entrance animations when its content comes into view, including repeat clicks on the current section. Returning home replays the hero typography; revisiting Insights replays the chart bars. Switching destinations cancels earlier replays, and Motion off disables them.
 - The navigation and URL track Home, Work, Services, Insights, Approach, About, and Contact in both scroll directions.
-- All six projects participate in the filters, including featured work.
+- All seven projects participate in the filters, including featured work.
 - Case studies use a full-window reader with a persistent return action, quick section navigation, scroll tracking, deep links, Escape dismissal, and focus restoration.
 - Actual screenshot galleries include a full-size viewer, previous/next controls, arrow-key navigation, and an original-image link. Opening a screenshot suspends the reader so one modal is active at a time; closing it restores the reader's position and focus.
 - Canvas motion pauses offscreen, when the tab is hidden, or when motion is Off.
@@ -112,3 +127,7 @@ For v5, JavaScript syntax validation and **119 targeted contact and asset checks
 V7 runs 13 controlled interaction scenarios using the real page markup and application code, with simulated browser APIs, geometry and scheduling. They cover full-motion defaults including system Reduce Motion, persistence, blocked storage, system changes, restarting motion, one canvas redraw per frame at simulated 60/120/144 Hz, canvas movement and visibility pauses, unavailable animation/canvas APIs, filters, keyboard tabs, all case studies, gallery restoration, local-file clipboard fallback, screenshot export, email destinations, mobile navigation and deep links. The v6 motion regression was reproduced before its fix; v7 additionally checks full-motion defaults and display-frame cadence. The suite is run against both the modular website and the standalone export. These are behavioral checks, not visual browser tests.
 
 Run `node checks/interactions.cjs` from the source checkout (Python 3 and lxml are used to parse the real HTML). Rebuild exports with `python3 checks/build-download.py /absolute/output/folder`. JavaScript syntax, HTML structure, local assets and ZIP byte integrity are also checked. A full Chrome session, visual rendering and real-device animation performance were not available in this environment; the manual checks above remain useful.
+
+## V10 — portfolio hierarchy
+
+Sales Reporting leads, followed by DataRole Radar and a prominent Retail Profitability card. Excel Business Tracker and the synthetic reconciliation example share a smaller service-example row. Customer analyses follow. The homepage and metadata describe the broader analytics/reporting offer. Services start with recurring reporting; reconciliation remains available with its complete case study, evidence, downloads, and enquiry link.

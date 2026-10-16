@@ -1,0 +1,236 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Payment Reconciliation Example</title><style>
+body{font:16px/1.5 Arial,sans-serif;color:#172234;max-width:1120px;margin:40px auto;padding:0 24px;background:#fff}
+h1{font-size:30px;margin-bottom:4px}h2{font-size:20px;margin:30px 0 12px}
+table{border-collapse:collapse;width:100%;font-size:14px}th{background:#20344d;color:#fff;text-align:left}
+th,td{padding:10px 12px;border-bottom:1px solid #dde3eb}td{vertical-align:top}
+p{max-width:950px}.muted{color:#4c5b6d}.tablewrap{overflow:auto}
+</style><h1>Payment Reconciliation Example</h1><p class="muted">MD Zawwadul Islam | Synthetic portfolio demonstration</p>
+<p>All data and bank names are invented. Unchanged baseline verified.</p>
+<p>Match on a trimmed transaction reference; exact paisa comparison; repeated or missing references remain for review.
+Difference = A minus B. Missing amounts are not zero. Dates and bank names provide context only.</p>
+<p><b>Source total gap: Tk-1570.01.</b> Row and amount controls check completeness, not whether the sources agree.</p>
+<div class="tablewrap"><h2>Results by status</h2><table class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th>Status</th>
+      <th>Report rows</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Matched</td>
+      <td>43</td>
+    </tr>
+    <tr>
+      <td>Amount difference</td>
+      <td>3</td>
+    </tr>
+    <tr>
+      <td>Ambiguous reference</td>
+      <td>3</td>
+    </tr>
+    <tr>
+      <td>Only in A</td>
+      <td>3</td>
+    </tr>
+    <tr>
+      <td>Only in B</td>
+      <td>2</td>
+    </tr>
+    <tr>
+      <td>Missing reference</td>
+      <td>1</td>
+    </tr>
+  </tbody>
+</table><h2>Source-accounting controls</h2><table class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th>Source</th>
+      <th>Input rows</th>
+      <th>Accounted rows</th>
+      <th>Input total BDT</th>
+      <th>Accounted total BDT</th>
+      <th>Rows check</th>
+      <th>Amount check</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>A</td>
+      <td>50</td>
+      <td>50</td>
+      <td>62750.00</td>
+      <td>62750.00</td>
+      <td>Pass</td>
+      <td>Pass</td>
+    </tr>
+    <tr>
+      <td>B</td>
+      <td>51</td>
+      <td>51</td>
+      <td>64320.01</td>
+      <td>64320.01</td>
+      <td>Pass</td>
+      <td>Pass</td>
+    </tr>
+  </tbody>
+</table><h2>Explanation of the total gap</h2><table class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th>Category</th>
+      <th>A minus B BDT</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Ambiguous reference</td>
+      <td>-1480.00</td>
+    </tr>
+    <tr>
+      <td>Amount difference</td>
+      <td>-50.01</td>
+    </tr>
+    <tr>
+      <td>Matched</td>
+      <td>0.00</td>
+    </tr>
+    <tr>
+      <td>Missing reference</td>
+      <td>-1470.00</td>
+    </tr>
+    <tr>
+      <td>Only in A</td>
+      <td>4460.00</td>
+    </tr>
+    <tr>
+      <td>Only in B</td>
+      <td>-3030.00</td>
+    </tr>
+  </tbody>
+</table><h2>Exceptions requiring review</h2><table class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th>Reference</th>
+      <th>A source row</th>
+      <th>B source row</th>
+      <th>A amount BDT</th>
+      <th>B amount BDT</th>
+      <th>A minus B BDT</th>
+      <th>Status</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td></td>
+      <td>&lt;NA&gt;</td>
+      <td>6</td>
+      <td></td>
+      <td>1470.00</td>
+      <td></td>
+      <td>Missing reference</td>
+    </tr>
+    <tr>
+      <td>000010</td>
+      <td>11</td>
+      <td>43</td>
+      <td>1100.00</td>
+      <td>1200.00</td>
+      <td>-100.00</td>
+      <td>Amount difference</td>
+    </tr>
+    <tr>
+      <td>000020</td>
+      <td>21</td>
+      <td>33</td>
+      <td>1200.00</td>
+      <td>1150.00</td>
+      <td>50.00</td>
+      <td>Amount difference</td>
+    </tr>
+    <tr>
+      <td>000030</td>
+      <td>31</td>
+      <td>23</td>
+      <td>1300.00</td>
+      <td>1300.01</td>
+      <td>-0.01</td>
+      <td>Amount difference</td>
+    </tr>
+    <tr>
+      <td>000047</td>
+      <td>48</td>
+      <td>&lt;NA&gt;</td>
+      <td>1470.00</td>
+      <td></td>
+      <td></td>
+      <td>Only in A</td>
+    </tr>
+    <tr>
+      <td>000048</td>
+      <td>49</td>
+      <td>&lt;NA&gt;</td>
+      <td>1480.00</td>
+      <td></td>
+      <td></td>
+      <td>Ambiguous reference</td>
+    </tr>
+    <tr>
+      <td>000048</td>
+      <td>&lt;NA&gt;</td>
+      <td>2</td>
+      <td></td>
+      <td>1480.00</td>
+      <td></td>
+      <td>Ambiguous reference</td>
+    </tr>
+    <tr>
+      <td>000048</td>
+      <td>&lt;NA&gt;</td>
+      <td>5</td>
+      <td></td>
+      <td>1480.00</td>
+      <td></td>
+      <td>Ambiguous reference</td>
+    </tr>
+    <tr>
+      <td>000049</td>
+      <td>50</td>
+      <td>&lt;NA&gt;</td>
+      <td>1490.00</td>
+      <td></td>
+      <td></td>
+      <td>Only in A</td>
+    </tr>
+    <tr>
+      <td>000050</td>
+      <td>51</td>
+      <td>&lt;NA&gt;</td>
+      <td>1500.00</td>
+      <td></td>
+      <td></td>
+      <td>Only in A</td>
+    </tr>
+    <tr>
+      <td>000051</td>
+      <td>&lt;NA&gt;</td>
+      <td>4</td>
+      <td></td>
+      <td>1510.00</td>
+      <td></td>
+      <td>Only in B</td>
+    </tr>
+    <tr>
+      <td>000052</td>
+      <td>&lt;NA&gt;</td>
+      <td>3</td>
+      <td></td>
+      <td>1520.00</td>
+      <td></td>
+      <td>Only in B</td>
+    </tr>
+  </tbody>
+</table></div>
+<h2>Review actions</h2><p>Check amount differences against underlying records; investigate one-sided transactions;
+resolve repeated references with a reviewer; obtain missing references before assigning a match.</p>
+<p class="muted">Exception counts are report rows. A paired difference represents two source records; an ambiguous row represents one source record.</p></html>
