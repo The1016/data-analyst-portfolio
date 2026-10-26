@@ -14,20 +14,56 @@ function emailDraftURL(subject = '', body = '') {
   if (body) url.searchParams.set('body', body);
   return url.href;
 }
+const quotePlans = {
+  starter: { title: 'Excel cleanup & owner summary', scope: 'A cleaned workbook, change log and one summary page. Up to 2 files with the same transaction structure and 5,000 combined rows.' },
+  tracker: { title: 'Excel business tracker', scope: '3 input sheets and 1 dashboard for one business. Up to 1,000 initial rows, 5 metrics and 3 charts. Editable workbook, guide and walkthrough.' },
+  reconciliation: { title: 'Payment matching & exceptions', scope: '2 exports, up to 2,000 combined rows, one supplied matching key and up to 3 agreed rules. Matched records, review exceptions, control totals and a rules note.' },
+  dashboard: { title: 'Power BI sales dashboard', scope: '1 Excel/CSV table, up to 5,000 rows, 1 report page, 4 metrics, 4 visuals and 2 filters. Editable report, prepared data and refresh guidance.' },
+  reporting: { title: 'Repeatable monthly reporting', scope: 'One CSV layout, up to 3 historical files, 1 reference table and 25,000 initial rows. Python preparation, quality checks and a 2-page Power BI report.' },
+  custom: { title: 'A different data task', scope: 'Describe the files and the decision or task you need help with. Scope, fee and delivery are confirmed after a sample review.' }
+};
+const projectQuoteKeys = { sales: 'reporting', excel: 'tracker', retail: 'dashboard', reconciliation: 'reconciliation' };
+function updateQuoteDraft() {
+  const select = $('#quote-service');
+  const plan = quotePlans[select.value] || quotePlans.starter;
+  $('#quote-scope').textContent = plan.scope;
+  const context = ($('#quote-context').value || '').trim().slice(0, 2000);
+  const subject = 'Quote request: ' + plan.title;
+  const body = 'Hi Zawwadul,\n\nI would like a fixed quote for ' + plan.title + '.\n\nStarting scope:\n' + plan.scope +
+    '\n\nAbout my files and deadline:\n' + (context || '[File type, approximate row count, what I need to check, and preferred deadline]') +
+    '\n\nI can share a small redacted sample. Please confirm the scope, payable fee, software needs and delivery date before work starts.';
+  $('#quote-gmail').setAttribute('href', emailDraftURL(subject, body));
+  const mailParams = new URLSearchParams({ subject, body }).toString().replace(/\+/g, '%20');
+  $('#quote-mailto').setAttribute('href', 'mailto:' + email + '?' + mailParams);
+}
+$('#quote-service').addEventListener('change', updateQuoteDraft);
+$('#quote-context').addEventListener('input', updateQuoteDraft);
+updateQuoteDraft();
 const motionPreferenceKey = 'portfolio-motion-v3';
-let userMotion = 'on';
-try { userMotion = localStorage.getItem(motionPreferenceKey) || 'on'; } catch (_) {}
-if (!['on', 'off'].includes(userMotion)) userMotion = 'on';
+let userMotion = 'auto';
+try { userMotion = localStorage.getItem(motionPreferenceKey) || 'auto'; } catch (_) {}
+if (!['on', 'off', 'reduced'].includes(userMotion)) userMotion = 'auto';
 let motionEnabled = userMotion !== 'off';
-let renderField = () => {};
-let resetPreviewDepth = () => {};
-const gentleDetails = matchMedia('(prefers-reduced-motion: reduce)');
+const systemMotion = matchMedia('(prefers-reduced-motion: reduce)');
+// Device preference is the default, never a veto on an explicit visitor choice.
+let reducedMotion = userMotion === 'reduced' || (userMotion === 'auto' && systemMotion.matches);
+let keyboardInput = false;
+const motionEase = 'cubic-bezier(.23,1,.32,1)';
+// Slower marketing entrances; everyday controls retain their short feedback.
+const revealEase = 'cubic-bezier(.32,.72,0,1)';
+const entranceTiming = { hero: 1200, content: 1000, preview: 1100, stagger: 80 };
+const revealDelays = new Map();
+const revealCandidates = new Set();
+let revealObserver;
 let toastTimer;
 const motionAnimations = new Set();
 const pendingSectionReplays = new Map();
 const sectionReplayAnimations = new Map();
 const pendingDetailEntrances = new Map();
 let pendingHeroReplay = false;
+let caseCoverAnimation = null;
+let renderField = () => {};
+let replaySignal = () => {};
 
 function toast(message) {
   const el = $('#toast');
@@ -37,8 +73,13 @@ function toast(message) {
   toastTimer = setTimeout(() => el.classList.remove('visible'), 3400);
 }
 function animateElement(el, frames, options = {}) {
-  if (!motionEnabled || !el?.animate) return null;
-  const settings = { duration: 320, easing: 'cubic-bezier(.22,1,.36,1)', ...options };
+  if (!motionEnabled || keyboardInput || !el?.animate) return null;
+  const settings = { duration: 200, easing: motionEase, ...options };
+  if (reducedMotion) {
+    frames = frames.map(frame => Object.fromEntries(Object.entries(frame).filter(([key]) => !['transform', 'clipPath'].includes(key))));
+    if (!frames.some(frame => 'opacity' in frame)) return null;
+    settings.duration = Math.min(settings.duration, 150); settings.delay = 0;
+  }
   // An optional animation must never prevent the rest of the page starting.
   let animation;
   try { animation = el.animate(frames, settings); } catch (_) { return null; }
@@ -47,45 +88,85 @@ function animateElement(el, frames, options = {}) {
   return animation;
 }
 function animateContent(el) {
-  el.getAnimations?.().forEach(animation => animation.cancel());
-  animateElement(el, [{ opacity: 0, transform: 'translateY(7px)' }, { opacity: 1, transform: 'translateY(0)' }], { duration: 280 });
+  if (!el || !motionEnabled || keyboardInput) return;
+  const active = el.getAnimations?.() || [];
+  const current = active.length && typeof getComputedStyle === 'function' ? getComputedStyle(el) : null;
+  // Retarget an interrupted transition from its painted state, not opacity zero.
+  const opacity = current ? current.opacity : .72;
+  const transform = current ? current.transform : 'translateY(4px)';
+  active.forEach(animation => animation.cancel());
+  animateElement(el, [{ opacity, transform }, { opacity: 1, transform: 'none' }], { duration: 180 });
 }
+function setKeyboardInput(value) {
+  keyboardInput = value;
+  document.documentElement.classList.toggle('keyboard-input', value);
+  if (value) {
+    motionAnimations.forEach(animation => animation.cancel());
+    motionAnimations.clear();
+    pendingSectionReplays.clear(); pendingDetailEntrances.clear();
+    pendingHeroReplay = false;
+  }
+  renderField();
+}
+document.addEventListener('keydown', () => setKeyboardInput(true), { capture: true });
+// Keyboard suppression must end when the visitor returns to a mouse, trackpad
+// or touch. Waiting for a click left wheel scrolling and hover stuck motionless.
+function resumePointerMotion() {
+  if (keyboardInput) setKeyboardInput(false);
+}
+for (const type of ['pointerdown', 'pointermove', 'wheel', 'touchstart']) {
+  document.addEventListener(type, resumePointerMotion, { capture: true, passive: true });
+}
+document.addEventListener('click', event => { if (event.detail > 0) setKeyboardInput(false); }, { capture: true });
 function applyMotion() {
+  motionEnabled = userMotion !== 'off';
+  reducedMotion = userMotion === 'reduced' || (userMotion === 'auto' && systemMotion.matches);
   const root = document.documentElement;
+  root.classList.add('motion-ready');
   root.classList.toggle('motion-off', !motionEnabled);
-  root.classList.toggle('motion-on', motionEnabled);
+  root.classList.toggle('motion-on', motionEnabled && !reducedMotion);
+  root.classList.toggle('motion-reduced', reducedMotion);
   const button = $('#motion-toggle');
-  button.setAttribute('aria-pressed', String(motionEnabled));
-  $('span', button).textContent = motionEnabled ? 'on' : 'off';
-  button.setAttribute('aria-label', motionEnabled ? 'Turn animations off' : 'Turn animations on');
-  button.title = motionEnabled ? 'Animations enabled. Click to turn motion off.' : 'Animations disabled. Click to enable.';
-  if (!motionEnabled) {
+  const mode = !motionEnabled ? 'off' : reducedMotion ? 'reduced' : 'on';
+  const next = { on: 'off', off: 'reduced', reduced: 'on' }[mode];
+  button.setAttribute('aria-pressed', mode === 'reduced' ? 'mixed' : String(motionEnabled));
+  $('span', button).textContent = mode;
+  button.setAttribute('aria-label', 'Motion ' + mode + '. Switch to ' + next + '.');
+  button.title = {on:'Full animations enabled.',off:'Animations disabled.',reduced:'Gentle fades; no moving globe.'}[mode] + ' Click for ' + next + '.';
+  if (!motionEnabled || reducedMotion) {
     pendingSectionReplays.clear();
     pendingDetailEntrances.clear();
     pendingHeroReplay = false;
     motionAnimations.forEach(animation => animation.cancel());
     motionAnimations.clear();
     sectionReplayAnimations.clear();
-    $$('.reveal').forEach(el => el.classList.add('visible'));
+    if (!motionEnabled) $$('.reveal').forEach(el => el.classList.add('visible'));
   }
   renderField();
-  if (!motionEnabled) resetPreviewDepth();
 }
 applyMotion();
+systemMotion.addEventListener('change', applyMotion);
 $('#motion-toggle').addEventListener('click', () => {
-  motionEnabled = !motionEnabled;
-  userMotion = motionEnabled ? 'on' : 'off';
+  userMotion = !motionEnabled ? 'reduced' : reducedMotion ? 'on' : 'off';
   try { localStorage.setItem(motionPreferenceKey, userMotion); } catch (_) {}
   applyMotion();
   if (motionEnabled) {
     resetSectionAnimations($('#' + (currentSection || 'home')));
     requestScrollUpdate(false);
   }
-  toast(motionEnabled ? 'Animations enabled.' : 'Animations disabled.');
+  toast(motionEnabled ? (reducedMotion ? 'Reduced motion: gentle fades. Click Motion again for full animations.' : 'Animations enabled.') : 'Animations disabled.');
 });
 
 function playSectionEntrance(element, frames, options) {
-  sectionReplayAnimations.get(element)?.cancel();
+  const previous = sectionReplayAnimations.get(element);
+  if (previous?.playState === 'running' && typeof getComputedStyle === 'function') {
+    const painted = getComputedStyle(element);
+    frames = frames.map((frame, index) => index ? frame : {
+      ...frame, ...('opacity' in frame ? { opacity: painted.opacity } : {}),
+      ...('transform' in frame ? { transform: painted.transform } : {})
+    });
+  }
+  previous?.cancel();
   const animation = animateElement(element, frames, options);
   if (!animation) return;
   sectionReplayAnimations.set(element, animation);
@@ -94,59 +175,93 @@ function playSectionEntrance(element, frames, options) {
   };
   animation.finished.then(clear, clear);
 }
-function detailInView(element) {
+// Start once the top reaches 86% of the viewport. A viewport-relative line
+// stays consistent on phones; the bottom exception keeps the footer reachable.
+function revealInView(element, topEdge = 0) {
   const rect = element.getBoundingClientRect();
-  return rect.width > 0 && rect.height > 0 && rect.bottom > 0 && rect.top < innerHeight - 20;
+  const atBottom = scrollY + innerHeight >= document.documentElement.scrollHeight - 3;
+  const triggerLine = atBottom ? innerHeight : innerHeight * .86;
+  return rect.width > 0 && rect.height > 0 && rect.bottom > topEdge && rect.top < triggerLine;
+}
+function processRevealCandidates() {
+  // IntersectionObserver limits this work to currently intersecting elements.
+  const ready = [...revealCandidates].filter(element => revealInView(element));
+  for (const element of ready) {
+    revealCandidates.delete(element);
+    revealObserver.unobserve(element);
+    const first = !element.classList.contains('visible');
+    element.classList.add('visible');
+    if (first) animateRevealDetails(element);
+  }
 }
 function playDetailEntrance(element, frames, options) {
-  if (!motionEnabled) return;
+  if (!motionEnabled || keyboardInput) return;
   // On a phone a report sits below its project description. Wait for that
   // report itself, instead of spending its entrance above the viewport.
-  if (!detailInView(element)) { pendingDetailEntrances.set(element, { frames, options }); return; }
+  if (!revealInView(element)) { pendingDetailEntrances.set(element, { frames, options }); return; }
   pendingDetailEntrances.delete(element);
   playSectionEntrance(element, frames, options);
 }
 function processDetailEntrances() {
   for (const [element, { frames, options }] of pendingDetailEntrances) {
     if (!element.isConnected) { pendingDetailEntrances.delete(element); continue; }
-    if (detailInView(element)) playDetailEntrance(element, frames, options);
+    if (revealInView(element)) playDetailEntrance(element, frames, options);
   }
 }
+function playCleanupDemo() {
+  const demo = $('#cleanup-demo');
+  $$('.cleanup-row,.cleanup-summary,.cleanup-check,.cleanup-chart i', demo).forEach(el => {
+    el.getAnimations?.().forEach(animation => animation.cancel());
+  });
+  if (!motionEnabled || keyboardInput) return;
+  const starts = ['translate(16px, 50px) rotate(3deg)', 'translate(-12px, -50px) rotate(-3deg)', 'translate(8px, 50px) rotate(2deg)'];
+  $$('[data-clean-row]', demo).forEach((row, index) => animateElement(row,
+    [{ transform: starts[index], opacity: .65 }, { transform: 'none', opacity: 1 }],
+    { duration: 1200, delay: 300 + index * 110, easing: revealEase, fill: 'backwards' }));
+  animateElement($('.cleanup-duplicate', demo), [
+    { opacity: .95, transform: 'translate(10px, 50px)' },
+    { opacity: .95, transform: 'translate(10px, 50px)', offset: .3 },
+    { opacity: 0, transform: 'translate(38px, 50px)' }
+  ], { duration: 1000, easing: revealEase, fill: 'backwards' });
+  for (const selector of ['.cleanup-check', '.cleanup-summary']) animateElement($(selector, demo),
+    [{ opacity: 0, transform: 'translateY(10px)' }, { opacity: 1, transform: 'none' }],
+    { duration: 1000, delay: 1350, easing: revealEase, fill: 'backwards' });
+  $$('.cleanup-chart i', demo).forEach((bar, index) => animateElement(bar,
+    [{ transform: 'scaleY(0)' }, { transform: 'scaleY(1)' }],
+    { duration: 900, delay: 1600 + index * 100, easing: revealEase, fill: 'backwards' }));
+}
+$('#cleanup-replay').hidden = false;
+$('#cleanup-replay').addEventListener('click', playCleanupDemo);
+
 // Each reveal has one small secondary beat. No timers hide content, and all
 // animations share the same cancellation path as the main Motion switch.
-function animateRevealDetails(element, delay = 0) {
-  if (!motionEnabled) return;
-  const gentle = gentleDetails.matches;
-  const enter = (target, transform, offset = 0, duration = 650) => {
-    if (!target) return;
-    playDetailEntrance(target, [
-      { opacity: 0, transform: gentle ? 'none' : transform },
-      { opacity: 1, transform: 'none' }
-    ], { duration: gentle ? 150 : duration, delay: gentle ? 0 : delay + offset, fill: 'backwards' });
-  };
-  if (element.classList.contains('section-heading')) {
-    enter($('h2 .muted', element), 'translateY(12px)', 100, 700);
-    enter($('.section-intro', element), 'translateY(8px)', 160, 650);
+function animateRevealDetails(element, delay = revealDelays.get(element) || 0) {
+  if (!motionEnabled || keyboardInput) return;
+  if (element.classList.contains('cleanup-visual')) playCleanupDemo();
+  if (element.classList.contains('process-row')) {
+    const connector = $('.process-connector', element);
+    if (connector) playDetailEntrance(connector, [{ transform: 'scaleY(0)', opacity: .2 }, { transform: 'scaleY(1)', opacity: .5 }], { duration: 1000, delay: 160, easing: revealEase, fill: 'backwards' });
+  }
+  if (element.classList.contains('motion-reveal')) {
+    playDetailEntrance(element, [
+      { opacity: .25, transform: 'translateY(26px)' }, { opacity: 1, transform: 'none' }
+    ], { duration: entranceTiming.content, easing: revealEase, delay: Math.min(delay, 240), fill: 'backwards' });
   }
   if (element.classList.contains('project-item')) {
     const preview = $('.report-preview,.priority-image,.radar-feature-visual', element);
-    enter(preview, 'perspective(1000px) translateY(24px) rotateX(5deg) scale(.985)', 100, 850);
-    $$('.feature-facts div,.radar-proof div,.radar-flow span', element).forEach((part, i) => enter(part, 'translateY(10px)', 140 + i * 65, 550));
+    if (preview) playDetailEntrance(preview, [
+      { opacity: 0, transform: 'translateY(8px) scale(.97)' },
+      { opacity: 1, transform: 'none' }
+    ], { duration: entranceTiming.preview, easing: revealEase, delay: Math.min(delay, 240), fill: 'backwards' });
   }
-  if (element.classList.contains('service')) animateServiceIcon(element, delay + 100);
-  if (element.classList.contains('process-row')) {
-    enter($('.process-number', element), 'scale(.8)', 0, 500);
-    enter($('p', element), 'translateX(14px)', 100, 650);
+  if (element.classList.contains('service')) {
+    $$('.icon-part', element).forEach((part, index) => playDetailEntrance(part, [
+      { opacity: 0, transform: 'translateY(3px)' }, { opacity: 1, transform: 'none' }
+    ], { duration: 240, delay: index * 50, fill: 'backwards' }));
   }
-  $$('.bar-fill', element).forEach((bar, i) => playDetailEntrance(bar,
-    gentle ? [{ opacity: 0 }, { opacity: 1 }] : [{ transform: 'scaleX(0)' }, { transform: 'scaleX(1)' }],
-    { duration: gentle ? 150 : 700, delay: gentle ? 0 : delay + i * 55, fill: 'backwards' }));
-}
-function animateServiceIcon(service, delay = 0) {
-  $$('.icon-part', service).forEach((part, i) => playDetailEntrance(part, [
-    { opacity: 0, transform: gentleDetails.matches ? 'none' : 'translateY(5px)' },
-    { opacity: 1, transform: 'none' }
-  ], { duration: gentleDetails.matches ? 150 : 420, delay: gentleDetails.matches ? 0 : delay + i * 65, fill: 'backwards' }));
+  $$('.bar-fill', element).forEach((bar, index) => playDetailEntrance(bar,
+    [{ transform: 'scaleX(0)' }, { transform: 'scaleX(1)' }],
+    { duration: 400, delay: index * 50, fill: 'backwards' }));
 }
 function resetSectionAnimations(section) {
   pendingSectionReplays.clear();
@@ -154,30 +269,31 @@ function resetSectionAnimations(section) {
   pendingHeroReplay = false;
   sectionReplayAnimations.forEach(animation => animation.cancel());
   sectionReplayAnimations.clear();
-  if (!motionEnabled) return;
+  if (!motionEnabled || keyboardInput) return;
   // Unseen elements retain their original scroll reveal. Previously viewed
   // elements replay when they arrive, without hiding an entire long section.
-  $$('.reveal', section).forEach((element, index) => {
-    if (element.classList.contains('visible')) pendingSectionReplays.set(element, index % 3 * 60);
+  $$('.reveal,.motion-reveal,.cleanup-visual', section).forEach((element, index) => {
+    if (element.classList.contains('visible')) pendingSectionReplays.set(element, index % 3 * entranceTiming.stagger);
   });
   pendingHeroReplay = section.id === 'home';
 }
 function processSectionReplays(headerHeight) {
-  if (!motionEnabled) return;
+  if (!motionEnabled || keyboardInput) return;
   const inView = element => {
     const rect = element.getBoundingClientRect();
     return rect.width > 0 && rect.height > 0 && rect.bottom > headerHeight && rect.top < innerHeight - 20;
   };
   for (const [element, delay] of pendingSectionReplays) {
-    if (!inView(element)) continue;
+    if (!revealInView(element, headerHeight)) continue;
     pendingSectionReplays.delete(element);
-    playSectionEntrance(element, [{ opacity: 0, transform: 'translateY(20px)' }, { opacity: 1, transform: 'translateY(0)' }], { duration: 600, delay });
+    if (!element.classList.contains('motion-reveal')) playSectionEntrance(element, [{ opacity: 0, transform: 'translateY(20px)' }, { opacity: 1, transform: 'translateY(0)' }], { duration: entranceTiming.content, easing: revealEase, delay });
     animateRevealDetails(element, delay);
   }
   if (pendingHeroReplay && inView($('#hero-title'))) {
     pendingHeroReplay = false;
-    $$('.hero-line span').forEach((line, index) => playSectionEntrance(line, [{ transform: 'translateY(110%)' }, { transform: 'translateY(0)' }], { duration: 720, delay: index * 100 }));
-    $$('.hero-enter').forEach((element, index) => playSectionEntrance(element, [{ opacity: 0, transform: 'translateY(16px)' }, { opacity: 1, transform: 'translateY(0)' }], { duration: 600, delay: 100 + index * 50 }));
+    replaySignal();
+    $$('.hero-line span').forEach((line, index) => playSectionEntrance(line, [{ transform: 'translateY(110%)' }, { transform: 'translateY(0)' }], { duration: entranceTiming.hero, easing: revealEase, delay: index * entranceTiming.stagger }));
+    $$('.hero-enter').forEach((element, index) => playSectionEntrance(element, [{ opacity: 0, transform: 'translateY(16px)' }, { opacity: 1, transform: 'translateY(0)' }], { duration: entranceTiming.content, easing: revealEase, delay: 220 + index * entranceTiming.stagger }));
   }
 }
 
@@ -193,7 +309,7 @@ menuToggle.addEventListener('click', () => {
   menuToggle.setAttribute('aria-expanded', String(open));
   menuToggle.setAttribute('aria-label', open ? 'Close navigation' : 'Open navigation');
   mobileNav.hidden = !open;
-  if (open) animateElement(mobileNav, [{ opacity: 0, transform: 'translateY(-8px)' }, { opacity: 1, transform: 'translateY(0)' }], { duration: 280 });
+  if (open) animateElement(mobileNav, [{ opacity: 0, transform: 'translateY(-8px)' }, { opacity: 1, transform: 'translateY(0)' }], { duration: 200 });
 });
 document.addEventListener('keydown', event => {
   if (event.key === 'Escape' && !mobileNav.hidden) { closeMenu(); menuToggle.focus(); }
@@ -204,9 +320,9 @@ document.addEventListener('click', event => {
 matchMedia('(min-width: 75.01em)').addEventListener('change', e => { if (e.matches) closeMenu(); });
 
 const navLinks = $$('[data-nav]');
-const trackedSections = ['home', 'work', 'services', 'insight', 'approach', 'about', 'contact'].map(id => $('#' + id));
+const trackedSections = ['home', 'services', 'work', 'insight', 'approach', 'about', 'contact'].map(id => $('#' + id));
 let scrollPending = false, syncScrollURL = false, navigatingTo = null, navigationTimer;
-let currentSection = '';
+let currentSection = '', lastHeaderHeight = 0;
 function activateSection(id) {
   if (id === currentSection) return;
   currentSection = id;
@@ -223,7 +339,11 @@ function updateScrollState(syncURL = false) {
   if ($('#case-dialog').open || $('#image-dialog').open) return;
   const header = $('.site-header');
   const height = header.getBoundingClientRect().height;
-  document.documentElement.style.setProperty('--header-height', height + 'px');
+  if (height !== lastHeaderHeight) {
+    document.documentElement.style.setProperty('--header-height', height + 'px');
+    lastHeaderHeight = height;
+  }
+  processRevealCandidates();
   processSectionReplays(height);
   processDetailEntrances();
   const distance = Math.max(0, document.documentElement.scrollHeight - innerHeight);
@@ -249,7 +369,7 @@ function requestScrollUpdate(syncURL = false) {
   scrollPending = true;
   requestAnimationFrame(() => updateScrollState(syncURL));
 }
-function navigateTo(id) {
+function navigateTo(id, options = {}) {
   const target = $('#' + id);
   if (!target) return;
   closeMenu();
@@ -261,12 +381,12 @@ function navigateTo(id) {
   if (location.hash !== '#' + id) {
     try { history.pushState(null, '', '#' + id); } catch (_) { location.hash = '#' + id; }
   }
-  target.scrollIntoView({ behavior: motionEnabled ? 'smooth' : 'instant', block: 'start' });
+  target.scrollIntoView({ behavior: !options.instant && motionEnabled && !reducedMotion && !keyboardInput ? 'smooth' : 'instant', block: 'start' });
   const focusTarget = $('h1,h2', target) || target;
   focusTarget.setAttribute('tabindex', '-1');
   focusTarget.focus({ preventScroll: true });
   requestScrollUpdate(false);
-  navigationTimer = setTimeout(() => { navigatingTo = null; updateScrollState(true); }, motionEnabled ? 1100 : 0);
+  navigationTimer = setTimeout(() => { navigatingTo = null; updateScrollState(true); }, motionEnabled && !options.instant ? 1100 : 0);
 }
 document.addEventListener('click', event => {
   const link = event.target.closest('a[href^="#"]');
@@ -459,18 +579,13 @@ const galleries = {
     ['retail-category-profit.png', 'Profit by Category', 'A Python analysis chart from the project.']
   ]
 };
-const serviceOffers = {
-  reconciliation: ['A clearer payment comparison', 'A scoped project could compare two payment exports using agreed reference and amount rules, separate exceptions for review, and hand over the results with source totals and documented checks.', 'Payment reconciliation project'],
-  sales: ['A recurring reporting workflow', 'A scoped adaptation could combine your monthly files, define your KPIs, create a focused report, and document the preparation and refresh process.', 'Monthly sales reporting project'],
-  excel: ['A workbook for your business', 'A scoped adaptation could organize your orders, stock, expenses, and customers into a workbook with formulas and an operational dashboard.', 'Custom Excel business tracker'],
-  retail: ['A dashboard for business decisions', 'A scoped adaptation could clean your sales data, define meaningful metrics, and investigate product margins, discounts, and customer profitability.', 'Profitability dashboard project']
-};
 projectData.sales.limitation += ' The screenshots and summary metrics show a refreshed snapshot. The useful finding describes the earlier reporting period documented in the project README.';
 projectData.excel.limitation = 'The workbook and screenshots demonstrate a portfolio example. The sample includes filtered views; no measured client impact is claimed. A public repository or workbook download has not been supplied.';
 projectData.radar.tools = ['Python', 'Pandas', 'SQL / SQLite', 'Power BI', 'pytest', 'Data quality'];
 
 const dialog = $('#case-dialog');
 const imageDialog = $('#image-dialog');
+let pendingQuoteKey = null;
 let lastCaseTrigger, activeProject, returnHash = '#work';
 let closeSequence = 0;
 let galleryProject, galleryIndex = 0, lastImageTrigger;
@@ -502,7 +617,7 @@ function requestReaderUpdate() {
 dialog.addEventListener('scroll', requestReaderUpdate, { passive: true });
 addEventListener('resize', requestReaderUpdate);
 
-function lockBody() { document.body.classList.toggle('modal-open', dialog.open || imageDialog.open); }
+function lockBody() { document.body.classList.toggle('modal-open', dialog.open || imageDialog.open); renderField(); }
 function screenshotMarkup(key, index = 0) {
   const [file, title, , width = 1440, height = 810] = galleries[key][index];
   return `<button class="dashboard-shot${height > width ? ' portrait-shot' : ''}" data-image="${key}" data-image-index="${index}" aria-label="Enlarge ${escapeHTML(title)}"><img src="${assetURL('assets/projects/' + file)}" alt="${escapeHTML(title)} — ${escapeHTML(projectData[key].label || 'actual project')} screenshot" width="${width}" height="${height}" decoding="async"><span class="image-expand">View full size <i aria-hidden="true">↗</i></span></button>`;
@@ -513,9 +628,8 @@ function galleryMarkup(key) {
   return `<section class="case-gallery" id="reader-screens" data-reader-section aria-label="Actual project screenshots"><div class="case-gallery-top"><h3>Inside the actual project</h3><span>${shots.length} screenshots · select to enlarge</span></div><div id="case-gallery-image">${screenshotMarkup(key)}</div><div class="case-gallery-tabs" role="group" aria-label="Choose a project screenshot">${shots.map(([, title], index) => `<button data-gallery-index="${index}" aria-pressed="${index === 0}">${escapeHTML(title)}</button>`).join('')}</div><p class="case-gallery-caption" id="case-gallery-caption" role="status" aria-live="polite">${escapeHTML(shots[0][2])}</p></section>`;
 }
 function serviceMarkup(key) {
-  const offer = serviceOffers[key];
-  if (!offer) return '';
-  return `<section class="case-service"><h3>${escapeHTML(offer[0])}</h3><p>${escapeHTML(offer[1])}</p><a class="text-link" href="${escapeHTML(emailDraftURL(offer[2]))}" target="_blank" rel="noopener noreferrer" title="Open an email draft in Gmail (new tab)">Discuss a similar project <span aria-hidden="true">↗</span></a></section>`;
+  const quoteKey = projectQuoteKeys[key] || 'custom';
+  return `<section class="case-service"><p class="eyebrow">Hire me for this kind of work</p><h3>${escapeHTML(quotePlans[quoteKey].title)}</h3><p>${escapeHTML(quotePlans[quoteKey].scope)}</p><a class="button button-lime" data-quote="${quoteKey}" href="${escapeHTML(emailDraftURL('Quote request: ' + quotePlans[quoteKey].title))}" target="_blank" rel="noopener noreferrer">Get a quote for this scope <span aria-hidden="true">↗</span></a></section>`;
 }
 function downloadsMarkup(project) {
   if (!project.downloads) return '';
@@ -530,6 +644,12 @@ function openCase(key, updateURL = true, trigger = null) {
   const project = projectData[key];
   if (!project) return;
   closeSequence++;
+  caseCoverAnimation?.cancel();
+  caseCoverAnimation = null;
+  const sourceImage = trigger?.closest('.project-item')?.querySelector('img');
+  const sourceRect = sourceImage?.getBoundingClientRect();
+  const connectImage = motionEnabled && !reducedMotion && !keyboardInput && sourceRect?.width > 0 && sourceRect.height > 0 && sourceRect.top < innerHeight && sourceRect.bottom > lastHeaderHeight;
+  dialog.classList.toggle('shared-opening', !!connectImage);
   dialog.getAnimations?.().forEach(animation => animation.cancel());
   if (!dialog.open) returnHash = location.hash.startsWith('#case-') ? '#work' : (location.hash || '#work');
   if (trigger) lastCaseTrigger = trigger;
@@ -539,9 +659,11 @@ function openCase(key, updateURL = true, trigger = null) {
   const readerSections = [['reader-summary', 'At a glance'], ...(galleries[key] ? [['reader-screens', 'Screenshots']] : []), ['reader-built', 'What I built'], ['reader-method', 'Process'], ['reader-findings', 'Findings'], ...(project.validation ? [['reader-validation', 'Validation']] : []), ...(project.downloads ? [['reader-downloads', 'Downloads']] : [])];
   $('#case-content').innerHTML = `
     <p class="eyebrow case-kicker">${escapeHTML(project.type)} · ${escapeHTML(project.label || 'Portfolio project')}</p>
-    <h2 class="case-title" id="case-title">${escapeHTML(project.title)}</h2>
+    <div class="case-lead"><div><h2 class="case-title" id="case-title">${escapeHTML(project.title)}</h2>
     <p class="case-subtitle">${escapeHTML(project.description)}</p>
     <div class="tags">${project.tools.map(tool => `<span>${escapeHTML(tool)}</span>`).join('')}</div>
+    </div>${galleries[key] ? `<figure class="case-cover"><img src="${escapeHTML(sourceImage?.getAttribute('src') || assetURL('assets/projects/' + galleries[key][0][0]))}" alt="${escapeHTML(sourceImage?.getAttribute('alt') || galleries[key][0][1])}" width="${galleries[key][0][3] || 1440}" height="${galleries[key][0][4] || 810}"><figcaption>Project preview · inspect the full screenshots below.</figcaption></figure>` : ''}</div>
+    <div class="case-quote-strip"><a class="text-link" data-quote="${projectQuoteKeys[key] || 'custom'}" href="${escapeHTML(emailDraftURL('Quote request: ' + quotePlans[projectQuoteKeys[key] || 'custom'].title))}" target="_blank" rel="noopener noreferrer">Request a similar deliverable <span aria-hidden="true">↗</span></a><span>Sample review, then a fixed quote.</span></div>
     <nav class="case-index" aria-label="Case study sections">${readerSections.map(([id, label]) => `<button data-case-jump="${id}">${label}</button>`).join('')}</nav>
     <div id="reader-summary" data-reader-section>
       <div class="case-metrics">${project.metrics.map(([value, label]) => `<div class="case-metric"><strong>${escapeHTML(value)}</strong><span>${escapeHTML(label)}</span></div>`).join('')}</div>
@@ -564,6 +686,14 @@ function openCase(key, updateURL = true, trigger = null) {
   lockBody();
   dialog.scrollTop = 0;
   updateReader();
+  const cover = $('.case-cover img', dialog);
+  if (connectImage && cover) {
+    const destination = cover.getBoundingClientRect();
+    if (destination.width > 0 && destination.height > 0) caseCoverAnimation = animateElement(cover, [
+      { transform: `translate(${sourceRect.left - destination.left}px, ${sourceRect.top - destination.top}px) scale(${sourceRect.width / destination.width}, ${sourceRect.height / destination.height})`, opacity: .9 },
+      { transform: 'none', opacity: 1 }
+    ], { duration: 650, easing: revealEase, fill: 'backwards' });
+  }
   $('.close-dialog', dialog).focus({ preventScroll: true });
   $('#copy-case').addEventListener('click', () => {
     const base = location.protocol === 'file:' ? $('link[rel="canonical"]').getAttribute('href') : location.origin + location.pathname;
@@ -592,6 +722,8 @@ function openCase(key, updateURL = true, trigger = null) {
 async function closeCase() {
   if (!dialog.open || imageDialog.open) return;
   const sequence = ++closeSequence;
+  caseCoverAnimation?.cancel();
+  caseCoverAnimation = null;
   const exit = animateElement(dialog, [{ opacity: 1, transform: 'translateY(0) scale(1)' }, { opacity: 0, transform: 'translateY(12px) scale(.985)' }], { duration: 180 });
   if (exit) { try { await exit.finished; } catch (_) {} }
   if (sequence === closeSequence && dialog.open) dialog.close();
@@ -611,11 +743,31 @@ closeOnBackdrop(dialog, closeCase);
 dialog.addEventListener('close', () => {
   if (suspendedCase || dialog.open) return;
   lockBody();
+  if (pendingQuoteKey) {
+    const key = pendingQuoteKey; pendingQuoteKey = null;
+    showQuote(key);
+    return;
+  }
   if (location.hash === '#case-' + activeProject) {
     try { history.replaceState(null, '', returnHash); } catch (_) {}
   }
   if (lastCaseTrigger?.isConnected) lastCaseTrigger.focus({ preventScroll: true });
   requestScrollUpdate(false);
+});
+
+function showQuote(key) {
+  $('#quote-service').value = quotePlans[key] ? key : 'custom';
+  updateQuoteDraft();
+  navigateTo('contact', { instant: true });
+  $('#quote-service').focus({ preventScroll: true });
+}
+document.addEventListener('click', event => {
+  const link = event.target.closest('[data-quote]');
+  if (!link || event.button > 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+  event.preventDefault();
+  const key = link.dataset.quote;
+  if (dialog.open) { pendingQuoteKey = key; closeCase(); }
+  else showQuote(key);
 });
 
 function renderFullImage() {
@@ -697,7 +849,7 @@ document.addEventListener('click', event => {
   if (jumpButton && dialog.open) {
     const section = $('#' + jumpButton.dataset.caseJump, dialog);
     if (section) {
-      section.scrollIntoView({ behavior: motionEnabled ? 'smooth' : 'instant', block: 'start' });
+      section.scrollIntoView({ behavior: motionEnabled && !reducedMotion && !keyboardInput ? 'smooth' : 'instant', block: 'start' });
       const heading = $('h3', section) || section;
       heading.setAttribute('tabindex', '-1');
       heading.focus({ preventScroll: true });
@@ -764,7 +916,7 @@ $$('[data-filter]').forEach(button => button.addEventListener('click', () => {
   if (motionEnabled) projectItems.filter(item => !item.hidden).forEach((item, index) => {
     const old = oldRects.get(item), rect = item.getBoundingClientRect();
     const transform = old ? `translate(${old.left - rect.left}px,${old.top - rect.top}px)` : 'translateY(18px)';
-    animateElement(item, [{ opacity: old ? 1 : 0, transform }, { opacity: 1, transform: 'translate(0,0)' }], { duration: 320, delay: old ? 0 : Math.min(index * 30, 120) });
+    animateElement(item, [{ opacity: old ? 1 : 0, transform }, { opacity: 1, transform: 'translate(0,0)' }], { duration: 240, delay: old ? 0 : Math.min(index * 50, 100) });
   });
   requestScrollUpdate(false);
 }));
@@ -785,6 +937,7 @@ function connectTabs(container, dataKey, onSelect, vertical = false) {
   buttons.forEach((button, index) => {
     button.addEventListener('click', () => select(button, false));
     button.addEventListener('keydown', event => {
+      setKeyboardInput(true);
       let next;
       const useVertical = typeof vertical === 'function' ? vertical() : vertical;
       if (event.key === (useVertical ? 'ArrowDown' : 'ArrowRight')) next = (index + 1) % buttons.length;
@@ -808,9 +961,6 @@ function preloadScreenshot(key, index) {
 $$('[data-report]').forEach(button => {
   for (const type of ['pointerenter', 'focus']) button.addEventListener(type, () => preloadScreenshot('sales', reportKeys.indexOf(button.dataset.report)));
 });
-const warmScreenshots = () => Object.keys(galleries).forEach(key => galleries[key].forEach((_, index) => preloadScreenshot(key, index)));
-if ('requestIdleCallback' in window) requestIdleCallback(warmScreenshots, { timeout: 2500 });
-else setTimeout(warmScreenshots, 1400);
 connectTabs($('.report-tabs'), 'report', (key, id) => {
   const index = reportKeys.indexOf(key);
   const panel = $('#report-panel');
@@ -859,58 +1009,6 @@ updateLabOrientation();
 connectTabs($('.lab-tabs'), 'lab', (key, id) => { renderLab(key, id); animateContent($('#lab-panel')); }, () => !compactLab.matches);
 renderLab('churn', 'lab-tab-churn');
 
-// Tiny pointer depth belongs to the screenshot, never the clickable hit area.
-// Read geometry once per frame; no animation loop runs after the pointer stops.
-(function setupPreviewDepth() {
-  const pointer = matchMedia('(hover: hover) and (pointer: fine)');
-  const transforms = new Set();
-  let pending = 0, latest = null;
-  const clear = () => {
-    cancelAnimationFrame(pending); pending = 0; latest = null;
-    transforms.forEach(img => { img.style.transform = ''; });
-    transforms.clear();
-  };
-  resetPreviewDepth = clear;
-  const permitted = () => motionEnabled && pointer.matches && !gentleDetails.matches && !document.hidden;
-  document.addEventListener('pointermove', event => {
-    if (!permitted() || event.pointerType === 'touch') return;
-    const target = event.target.closest('.dashboard-shot,.priority-image');
-    // Full-size galleries stay flat so the work can be inspected accurately.
-    if (!target || target.closest('dialog')) { if (latest || transforms.size) clear(); return; }
-    latest = { target, x: event.clientX, y: event.clientY };
-    if (pending) return;
-    pending = requestAnimationFrame(() => {
-      pending = 0;
-      if (!latest || !permitted()) { clear(); return; }
-      const { target, x, y } = latest;
-      const img = $('img', target), rect = target.getBoundingClientRect();
-      if (!img || !rect.width || !rect.height) return;
-      transforms.forEach(old => { if (old !== img) { old.style.transform = ''; transforms.delete(old); } });
-      const px = Math.max(-1, Math.min(1, (x - rect.left) / rect.width * 2 - 1));
-      const py = Math.max(-1, Math.min(1, (y - rect.top) / rect.height * 2 - 1));
-      img.style.transform = `perspective(900px) rotateX(${-py * 1.8}deg) rotateY(${px * 1.8}deg) scale(1.025)`;
-      transforms.add(img);
-    });
-  }, { passive: true });
-  document.addEventListener('pointerout', event => {
-    const target = event.target.closest('.dashboard-shot,.priority-image');
-    if (target && event.relatedTarget?.closest?.('.dashboard-shot,.priority-image') !== target) clear();
-  });
-  pointer.addEventListener('change', clear);
-  gentleDetails.addEventListener('change', clear);
-  document.addEventListener('visibilitychange', clear);
-  addEventListener('scroll', clear, { passive: true });
-  addEventListener('blur', clear);
-})();
-$$('.service').forEach(service => {
-  service.addEventListener('pointerenter', event => {
-    if (event.pointerType !== 'touch') animateServiceIcon(service);
-  });
-  service.addEventListener('focusin', event => {
-    if (event.relatedTarget?.closest?.('.service') !== service) animateServiceIcon(service);
-  });
-});
-
 try {
 (function setupSignalField() {
   const canvas = $('#signal-canvas');
@@ -918,10 +1016,10 @@ try {
   if (!context) { $('#signal-toggle').disabled = true; $('#field-mode').textContent = 'Visual unavailable'; return; }
   const field = $('#signal-field');
   const toggle = $('#signal-toggle');
-  let width = 0, height = 0, raf = 0, visible = true;
+  let width = 0, height = 0, raf = 0, visible = false;
   // One opening assembly, then the existing quiet signal field. Starting with
   // the final form when motion is Off avoids a half-assembled static drawing.
-  let organized = true, blend = motionEnabled && !gentleDetails.matches ? 0 : 1, tick = 0;
+  let organized = true, blend = motionEnabled && !reducedMotion ? 0 : 1, tick = 0;
   let pointerX = 0, pointerY = 0, aimX = 0, aimY = 0;
   let seed = 3016;
   const random = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
@@ -982,11 +1080,11 @@ try {
   let lastTime = 0;
   function animate(time) {
     raf = 0;
-    if (!motionEnabled || !visible || document.hidden) return;
+    if (!motionEnabled || reducedMotion || keyboardInput || !visible || document.hidden || document.body.classList.contains('modal-open')) return;
     const dt = Math.min((time - (lastTime || time)) / 1000, .05); lastTime = time;
     tick += dt;
     const smoothing = 1 - Math.exp(-dt * 3.3);
-    blend += ((organized ? 1 : 0) - blend) * (1 - Math.exp(-dt * 2.6));
+    blend += ((organized ? 1 : 0) - blend) * (1 - Math.exp(-dt * 1.65));
     pointerX += (aimX - pointerX) * smoothing;
     pointerY += (aimY - pointerY) * smoothing;
     // Draw on every browser frame. A 45 fps threshold drops alternate frames
@@ -996,11 +1094,11 @@ try {
   }
   renderField = () => {
     cancelAnimationFrame(raf);raf = 0;lastTime = 0;
-    if (!motionEnabled) { blend = organized ? 1 : 0; pointerX = pointerY = 0; draw(); }
-    else if (visible && !document.hidden) raf = requestAnimationFrame(animate);
+    if (!motionEnabled || reducedMotion || keyboardInput) { blend = organized ? 1 : 0; pointerX = pointerY = 0; draw(); }
+    else if (visible && !document.hidden && !document.body.classList.contains('modal-open')) raf = requestAnimationFrame(animate);
   };
   field.addEventListener('pointermove', event => {
-    if (event.pointerType === 'touch') return;
+    if (event.pointerType === 'touch' || !matchMedia('(hover: hover) and (pointer: fine)').matches || reducedMotion || !motionEnabled) return;
     const rect = field.getBoundingClientRect();
     aimX = (event.clientX - rect.left) / rect.width * 2 - 1;
     aimY = (event.clientY - rect.top) / rect.height * 2 - 1;
@@ -1013,9 +1111,14 @@ try {
     toggle.title = organized ? 'Scatter the signal field' : 'Organize the signal field';
     renderField();
   });
+  replaySignal = () => {
+    if (motionEnabled && !reducedMotion && !keyboardInput) blend = organized ? 0 : 1;
+    renderField();
+  };
   if ('IntersectionObserver' in window) new IntersectionObserver(entries => {
     visible = entries[0].isIntersecting;renderField();
   }, { threshold: 0 }).observe(field);
+  else visible = true;
   document.addEventListener('visibilitychange', renderField);
   if ('ResizeObserver' in window) new ResizeObserver(resize).observe(field);
   else addEventListener('resize', resize);
@@ -1024,23 +1127,27 @@ try {
 
 } catch (_) { $('#signal-toggle').disabled = true; $('#field-mode').textContent = 'Visual unavailable'; }
 
+
 function setupReveals() {
-  for (const selector of ['.priority-grid', '.supporting-grid', '.service-grid', '.process-list', '.about-grid']) {
+  for (const selector of ['.priority-grid', '.supporting-grid', '.service-grid', '.starter-offer', '.process-list', '.about-grid']) {
     const group = $(selector);
-    if (group) [...group.children].forEach((element, index) => element.style.setProperty('--reveal-delay', Math.min(index * 70, 210) + 'ms'));
+    if (group) [...group.children].forEach((element, index) => {
+      const delay = Math.min(index * entranceTiming.stagger, 240);
+      element.style.setProperty('--reveal-delay', delay + 'ms');
+      revealDelays.set(element, delay);
+    });
   }
   if (!('IntersectionObserver' in window)) { $$('.reveal').forEach(el => el.classList.add('visible')); return; }
   try {
-    const observer = new IntersectionObserver(entries => {
-      for (const entry of entries) if (entry.isIntersecting) {
-        const first = !entry.target.classList.contains('visible');
-        entry.target.classList.add('visible');
-        if (first) animateRevealDetails(entry.target);
-        observer.unobserve(entry.target);
+    revealObserver = new IntersectionObserver(entries => {
+      for (const entry of entries) {
+        if (entry.isIntersecting) revealCandidates.add(entry.target);
+        else revealCandidates.delete(entry.target);
       }
-    }, { threshold: .04, rootMargin: '0px 0px -20px 0px' });
+      processRevealCandidates();
+    }, { threshold: 0 });
     document.documentElement.classList.add('enhanced');
-    $$('.reveal').forEach(el => observer.observe(el));
+    $$('.reveal,.motion-reveal,.cleanup-visual').forEach(el => revealObserver.observe(el));
   } catch (_) {
     document.documentElement.classList.remove('enhanced');
     $$('.reveal').forEach(el => el.classList.add('visible'));

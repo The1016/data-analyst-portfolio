@@ -1,3 +1,118 @@
+# Current review — v16, 24 October 2026
+
+| Before | After | Why |
+| --- | --- | --- |
+| The smaller cleanup offer described the result only in text. | A clearly labelled four-row sample organises into three unique orders and a traceable 3,400 summary; replay is optional. | Demonstrates the deliverable without claiming client outcomes. |
+| Project card and case reader appeared as disconnected surfaces. | A visible project preview moves and scales into the reader over 650ms; the image remains at its final size for inspection. | Preserves spatial context and gives the project opening a distinctive transition. |
+| Process steps had independent borders. | A thin lime connector grows between consecutive steps on arrival. | Visually connects question, preparation, reporting and handover. |
+| V15 triggered at 78% of viewport height. | Trigger is now 86%, following the user's later request to move it lower. | Starts slightly earlier while preserving accepted pacing. |
+
+Implementation uses native transform/opacity animations and the existing cancellation policy. The process stroke uses scaleY rather than animating line dimensions. The connected image measures the source and destination once, then animates the actual reader image; it does not leave an overlay behind. Demo replay cancels prior effects. No new library, continuous loop or permanent will-change layer was added. The existing globe remains the hero signature.
+
+The phone layout starts the cleanup when its visual reaches the trigger, rather than when the preceding description enters. Off and no-script states show the completed illustration; Reduced uses fades of at most 150ms. Keyboard actions are immediate. The replay button is hidden until JavaScript is available. The bottom-of-document exception is retained.
+
+32 controlled DOM checks and the responsive Chrome fixture pass. Browser checks cover 375px and 1280px widths, all three new effects, document overflow, Off cancellation and Reduced behavior. No physical-device FPS or conversion improvement is claimed.
+
+---
+
+# Historical review — v15, 24 October 2026
+
+| Before | After | Why |
+| --- | --- | --- |
+| Main reveals triggered 80px above the bottom; details and replays triggered at 20px. | One viewport-relative trigger at 78% of screen height for initial entrances, details and section replays. | Gives visitors more time to see the effect and behaves consistently on smaller screens. |
+| A later threshold could strand content at the end of the page. | At document bottom, intersecting content can reveal without more scrolling. | Keeps the contact section reachable. |
+| V14 pacing was accepted. | Durations, easing and group stagger are unchanged. | Changes when entrances start, not their speed. |
+
+IntersectionObserver tracks visible candidates; the existing coalesced scroll/resize update checks their positions. Revealed items are unobserved and ordinary scrolling does not replay them. No new perpetual loop, library or animated layout property was added. The existing globe and motion modes are retained.
+
+29 controlled DOM scenarios pass. They include later triggers across viewport sizes, resize handling, once-only reveals, report-preview timing, explicit navigation replay and the document-bottom exception. Browser verification is recorded in README.md. These checks are not physical-phone or frame-rate measurements.
+
+Recommended future additions, not implemented in v15: a small sample-data morph from messy rows to a clean summary; a shared-element transition from a project preview into its reader; one short process-connector line drawing. Prioritize the sample-data demonstration because it explains the deliverable. Keep the existing globe as the hero signature and provide static Reduced/Off states.
+
+---
+
+# Historical review — v14, 24 October 2026
+
+| Before | After | Why |
+| --- | --- | --- |
+| Main entrances lasted 400–600ms with a steep initial ease-out. | Hero 1200ms; content 1000ms; previews 1100ms; cubic-bezier(.32,.72,0,1) (`dist/app.js`, entranceTiming; `dist/design.css`, reveal tokens). | Makes occasional portfolio entrances visibly slower, as requested. |
+| First-visit service effects ignored group stagger; hero inline delays were overridden. | 80ms group stagger and distinct hero delays are applied. | Elements arrive in a readable sequence. |
+| Reveal started just 20px inside the bottom edge. | Reveal waits until 80px inside the viewport. | More of the effect is visible during ordinary scrolling. |
+| Globe formation used a 2.6 exponential rate. | Rate 1.65; idle drift is unchanged. | Slows the scatter/organize transformation while retaining interruption from the current state. |
+
+**Verdict: APPROVE within checked scope.** Longer timing is restricted to occasional marketing entrances, as explicitly requested. Everyday UI keeps short feedback; Reduced, Off and keyboard behavior are preserved. The existing transform/opacity animation paths and canvas visibility guards remain. No frame-rate guarantee or retention improvement is claimed.
+
+Earlier reviews below are historical.
+
+---
+
+# Historical review — v13, 23 October 2026
+
+| Before | After | Why |
+| --- | --- | --- |
+| The OS media query always overrode On, leaving Reduced/Off as the only reachable behavior (`dist/app.js:43`). | Explicit visitor choice wins; On, Off and Reduced all remain reachable and persisted (`dist/app.js:114`). | Fixes the reported absence of motion without requiring a device settings change. |
+| Three CSS media blocks could suppress animation independently of the control. | One resolved class policy, with a reduced-motion fallback before JavaScript (`dist/design.css`, V13 policy block). | Keeps rendered CSS, WAAPI, scrolling and the canvas consistent. |
+
+**Verdict: APPROVE within the checked scope.** Device reduction is the initial default for visitors who have not chosen a mode. Explicit On is a visitor override; Reduced and Off are retained. Keyboard navigation remains immediate. This fixes state selection rather than adding distracting effects.
+
+27 controlled DOM scenarios pass for source and export, including explicit On under system reduction, all three modes, persistence and system-preference changes. The Chrome fixture simulates a reduced-motion device in both JS and CSS; observed canvas frame changes and service transforms confirm that full On works. A static globe in Reduced/Off is intentional. This is not a physical-device frame-rate benchmark.
+
+Readability changes brighten secondary text from #b3b8aa to #c9cebf and enlarge service descriptions/deliverables to 1rem, supporting scope copy to .9375rem and service labels to .8125rem. The dark/lime identity, original globe, service scopes and contact links remain.
+
+All reviews below are historical.
+
+---
+
+# Historical review — v12, 23 October 2026
+
+**Verdict: APPROVE for source and browser-preview delivery, within the limits below.**
+
+| Before | After | Why |
+| --- | --- | --- |
+| The requested globe was replaced in v11. | Restore the original interactive geometry and scatter/organize control (`dist/index.html:46`, `dist/app.js:937`). | Preserves the visual the owner specifically asked to keep. |
+| Keyboard input disabled motion until a click. | Pointer movement, wheel and touch resume motion (`dist/app.js:91–111`). | Switching input methods no longer leaves the page stuck in keyboard mode. |
+| Service content was absent from reveal targets. | Heading, starter offer and service cards enter and replay (`dist/app.js:187`, `dist/app.js:1071`). | Connects the commercial section to the actual motion system. |
+| “On” could conceal a system reduced-motion preference. | Explicit On / Reduced / Off state (`dist/app.js:119`). | Makes the visible behavior understandable while respecting device settings. |
+| Interrupted entrance effects restarted from their first frame. | Sample the currently rendered transform and opacity before cancellation (`dist/app.js:147`). | Avoids jumping on rapid section navigation. |
+
+The globe is an intentional user-requested canvas illustration, so it requires painting. It has bounded point counts, a capped pixel ratio, and frame-time-based smoothing. Drawing stops offscreen, in a hidden document, behind dialogs, and in Off/Reduced modes. Transform/opacity entrances remain short and the commercial controls stay available independently of animation. This is not a claim that a canvas loop is compositor-only.
+
+The 26 controlled DOM scenarios pass for hosting source and portable export. They cover all seven projects and contact routing, animation cancellation/fallbacks, service entrances, keyboard recovery, globe interaction and pause/resume. Chrome frame sampling confirmed changing globe pixels, service transforms, and Off/On recovery. Browser extension metadata errors were observed, not application errors. No physical-phone frame-rate measurement, screen-reader session, actual email delivery or conversion experiment was performed.
+
+All reviews below are historical and may describe behavior replaced by v12.
+
+---
+
+# Historical review — v11, 23 October 2026
+
+**Verdict: APPROVE for source and browser-preview delivery, within the limits below.**
+
+The primary change makes the purchase clear before asking a buyer to inspect technical evidence. Existing palette, typography, project claims and downloadable reconciliation evidence are preserved. Previous reviews below describe earlier versions and are historical.
+
+| Before | After | Why |
+| --- | --- | --- |
+| Projects led the buyer journey. | Services precede Work; a scoped Excel cleanup is the smaller first project (`dist/index.html:63`). | Gives a buyer a concrete output to request. |
+| Broad discussion links required the buyer to define the work. | Four named scopes and case-to-quote routing select a deliverable and prepare the draft (`dist/index.html:69`, `dist/app.js:658`). | Carries purchase context into contact without collecting data. |
+| Continuous canvas particles and pointer-following previews competed with evidence. | A one-shot handover illustration and steady screenshots (`dist/design.css:508`). | Explains editable deliverables and removes continuous animation work. |
+| Some updates restarted their entrance on interruption. | Content transitions sample the painted state before cancellation (`dist/app.js:79`). | Avoids visible jumps when a pointer changes content quickly. |
+| Keyboard interactions replayed visual motion. | Keyboard updates are immediate; pointer transitions use short transform/opacity feedback (`dist/app.js:89`). | Repeated navigation remains quick. |
+| All project screenshots were preloaded. | Initial screenshots load normally; additional report tabs preload on intent (`dist/app.js:853`). | Reduces competing initial work. |
+| Header CSS size was rewritten on every scroll update. | The value is written only after an actual size change (`dist/app.js:253`). | Avoids unnecessary style invalidation. |
+
+## Motion craft and performance
+
+Animate, Animation Performance, Emil Design Engineering and Review Animations informed this implementation. UI feedback uses roughly 160–240ms and a shared strong ease-out. The occasional hero explanation uses 500–600ms with a restrained stagger, then settles. Only transform and opacity are animated in the new effects; there is no permanent will-change promotion, idle particle loop, animated numerical evidence or layout animation. Hover motion is limited to fine-pointer devices. Commercial actions remain visible without waiting for an entrance.
+
+Motion starts On unless the visitor saved Off. Off cancels active and queued effects. A system reduced-motion preference removes spatial effects and limits remaining fades to 150ms. Keyboard input makes CSS and programmatic transitions immediate. Case-to-quote navigation jumps directly to contact after closing the case instead of scrolling through the entire page.
+
+## Checks and limits
+
+The hosting source and portable export each pass 22 controlled DOM scenarios, including all seven cases, filtering, galleries, modal focus, cancellation, storage fallback, quote selection and safe context encoding. Gmail and mailto URLs target zawwadul@gmail.com and carry the same selected scope. Chrome preview checks confirmed service → reconciliation example → matching quote, settled modal focus, and readable 375px/320px responsive layouts without horizontal overflow. No application-console error was observed; the cloud browser extension emitted metadata errors unrelated to the page.
+
+The viewport tests are not physical-phone testing. No screen-reader session, slow-motion recording, frame-rate trace, real email delivery or conversion experiment was performed. Composite-friendly source does not prove a particular device frame rate. No claim of improved leads, retention, savings or client outcomes is made. Existing analytical screenshots and source claims were preserved, not re-audited as part of this design change.
+
+---
+
 ## V7 requested motion refinement
 
 Full motion now starts On by default, independently of the operating system preference, as explicitly requested by the portfolio owner. The header switch still offers Off and remembers that choice. The illustration redraws on every browser frame, with invariant geometry precalculated; this removes the former 45 fps threshold that skipped alternate frames on 60 Hz screens. CSS and JavaScript use the same slightly softer easing curve. The layout, visual identity, content and contact actions are preserved.
